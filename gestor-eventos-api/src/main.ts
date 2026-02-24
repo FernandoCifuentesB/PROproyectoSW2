@@ -9,7 +9,7 @@ async function bootstrap() {
   app.use(helmet());
 
   app.enableCors({
-    origin: true, // en prod pon tu dominio del frontend
+    origin: true,
     credentials: true,
   });
 
@@ -20,7 +20,12 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  app.enableCors({
+    origin: ["http://localhost:3001"],
+    credentials: true,
+  });
 
-  await app.listen(3001);
+  await app.listen(3000, "0.0.0.0");
+  console.log("API escuchando en http://0.0.0.0:3000");
 }
 bootstrap();
