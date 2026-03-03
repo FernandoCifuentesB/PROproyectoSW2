@@ -8,4 +8,12 @@ export declare class InterestsController {
         interested: boolean;
         interestCount: number;
     }>;
+    reportTop(): Promise<{
+        eventId: string;
+        name: string;
+        category: string;
+        interestCount: number;
+        date: Date;
+        price: number;
+    }[]>;
 }

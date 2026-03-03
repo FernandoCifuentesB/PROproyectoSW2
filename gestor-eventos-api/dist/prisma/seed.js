@@ -80,7 +80,6 @@ async function main() {
             },
         });
     }
-    console.log("🔥 20 eventos creados");
     console.log("ADMIN: admin@demo.com / admin123");
     console.log("USER: user@demo.com / user123");
 }

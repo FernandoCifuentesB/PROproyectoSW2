@@ -30,7 +30,10 @@ export class InterestsService {
   async reportTop() {
     const events = await this.prisma.event.findMany({
       orderBy: { interests: { _count: "desc" } },
-      include: { _count: { select: { interests: true } }, category: true },
+      include: {
+        category: true,
+        _count: { select: { interests: true } },
+      },
     });
 
     return events.map((e) => ({

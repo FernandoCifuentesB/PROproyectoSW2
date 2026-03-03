@@ -14,8 +14,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InterestsController = void 0;
 const common_1 = require("@nestjs/common");
-const interests_service_1 = require("./interests.service");
 const passport_1 = require("@nestjs/passport");
+const interests_service_1 = require("./interests.service");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const roles_guard_1 = require("../auth/roles.guard");
 let InterestsController = class InterestsController {
@@ -26,6 +26,9 @@ let InterestsController = class InterestsController {
     toggle(req, body) {
         const userId = req.user.userId;
         return this.service.toggle(userId, body.eventId);
+    }
+    reportTop() {
+        return this.service.reportTop();
     }
 };
 exports.InterestsController = InterestsController;
@@ -39,6 +42,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], InterestsController.prototype, "toggle", null);
+__decorate([
+    (0, common_1.Get)("report/top"),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], InterestsController.prototype, "reportTop", null);
 exports.InterestsController = InterestsController = __decorate([
     (0, common_1.Controller)("interests"),
     __metadata("design:paramtypes", [interests_service_1.InterestsService])

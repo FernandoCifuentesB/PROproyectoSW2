@@ -12,23 +12,23 @@ export declare class EventsController {
             category: {
                 id: string;
                 name: string;
-                description: string | null;
                 isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                description: string | null;
             };
             _count: {
                 interests: number;
             };
             id: string;
             name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             description: string;
             date: Date;
             price: number;
             imageUrl: string | null;
-            isActive: boolean;
-            createdAt: Date;
-            updatedAt: Date;
             categoryId: string;
         }[];
     }>;
@@ -37,23 +37,23 @@ export declare class EventsController {
         category: {
             id: string;
             name: string;
-            description: string | null;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
         };
         _count: {
             interests: number;
         };
         id: string;
         name: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
         categoryId: string;
     }[]>;
     get(id: string): Promise<{
@@ -61,59 +61,59 @@ export declare class EventsController {
         category: {
             id: string;
             name: string;
-            description: string | null;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
         };
         _count: {
             interests: number;
         };
         id: string;
         name: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
         categoryId: string;
     }>;
     create(dto: CreateEventDto): Promise<{
         id: string;
         name: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
         categoryId: string;
     }>;
     update(id: string, dto: UpdateEventDto): Promise<{
         id: string;
         name: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
         categoryId: string;
     }>;
     remove(id: string): Promise<{
         id: string;
         name: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
         categoryId: string;
     }>;
 }
