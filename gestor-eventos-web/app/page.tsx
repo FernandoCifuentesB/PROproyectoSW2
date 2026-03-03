@@ -8,14 +8,21 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/lib/auth";
+
+type FavRow = { eventId: string };
 
 export default function HomePage() {
+  const { token } = useAuth();
+
   const [cats, setCats] = useState<Category[]>([]);
   const [data, setData] = useState<Paged<EventItem> | null>(null);
 
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [page, setPage] = useState(1);
+
+  const [favSet, setFavSet] = useState<Set<string>>(new Set());
 
   const pageSize = 6;
 
@@ -36,12 +43,27 @@ export default function HomePage() {
     apiGet<Paged<EventItem>>(`/events/public?${query}`).then(setData).catch(console.error);
   }, [query]);
 
+  // ✅ Cargar favoritos del usuario logueado
+  useEffect(() => {
+    if (!token) {
+      setFavSet(new Set());
+      return;
+    }
+
+    apiGet<FavRow[]>("/interests/me")
+      .then((rows) => setFavSet(new Set(rows.map((r) => r.eventId))))
+      .catch((e) => {
+        console.error(e);
+        setFavSet(new Set());
+      });
+  }, [token]);
+
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white/10 to-white/0 p-6">
-        <h1 className="text-2xl font-extrabold">Encuentra tu próximo plan </h1>
+        <h1 className="text-2xl font-extrabold">Encuentra tu próximo plan</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
           Filtra por tipo de evento por categoría o nombre, según los que te interesan.
         </p>
@@ -73,7 +95,19 @@ export default function HomePage() {
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {data?.items?.map((ev) => (
-          <EventCard key={ev.id} ev={ev} />
+          <EventCard
+            key={ev.id}
+            ev={ev}
+            initialInterested={favSet.has(ev.id)}
+            onInterestChanged={(next) => {
+              setFavSet((prev) => {
+                const s = new Set(prev);
+                if (next) s.add(ev.id);
+                else s.delete(ev.id);
+                return s;
+              });
+            }}
+          />
         ))}
       </section>
 

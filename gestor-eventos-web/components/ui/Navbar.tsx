@@ -7,7 +7,8 @@ import { useAuth } from "@/lib/auth";
 export default function Navbar() {
   const { token, user, logout } = useAuth();
   const role = user?.role;
-
+  const displayName = user?.name ?? "Usuario";
+  const isAdmin = user?.role === "ADMIN";
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -57,8 +58,15 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold">
-                  {role === "ADMIN" ? "ADMIN" : "USUARIO"}
+                <span
+                  className={[
+                    "rounded-full border px-3 py-1 text-xs font-semibold",
+                    isAdmin
+                      ? "border-purple-600/40 bg-purple-800/15 text-purple-600"
+                      : "border-blue-600/40 bg-blue-800/15 text-blue-600",
+                  ].join(" ")}
+                >
+                  {displayName}
                 </span>
 
                 <Button
