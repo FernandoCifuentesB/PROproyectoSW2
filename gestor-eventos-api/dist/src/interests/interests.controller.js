@@ -24,7 +24,13 @@ let InterestsController = class InterestsController {
         this.service = service;
     }
     toggle(req, body) {
-        const userId = req.user.userId;
+        const userId = req?.user?.userId;
+        if (!userId) {
+            throw new Error("No llegó req.user.userId (token inválido o JWT strategy no aplicada)");
+        }
+        if (!body?.eventId) {
+            throw new Error("Falta eventId en el body");
+        }
         return this.service.toggle(userId, body.eventId);
     }
     reportTop() {

@@ -15,17 +15,27 @@ type TopRow = {
 
 export default function TopPage() {
   const [rows, setRows] = useState<TopRow[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     apiGet<TopRow[]>("/interests/report/top")
       .then(setRows)
-      .catch(console.error);
+      .catch((e: any) => {
+        console.error(e);
+        setError(e?.message ?? "Error cargando top");
+      });
   }, []);
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">EVENTOS CON MÁS INTERÉS</h1>
       <p className="text-sm text-[var(--muted)]">Ranking automático según la cantidad de usuarios interesados.</p>
+
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       <Card className="overflow-hidden p-0">
         <div className="grid grid-cols-12 border-b border-[var(--border)] px-4 py-3 text-xs text-[var(--muted)]">
