@@ -14,17 +14,20 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventsController = void 0;
 const common_1 = require("@nestjs/common");
+const passport_1 = require("@nestjs/passport");
 const events_service_1 = require("./events.service");
 const dto_1 = require("./dto");
+const roles_decorator_1 = require("../auth/roles.decorator");
+const roles_guard_1 = require("../auth/roles.guard");
 let EventsController = class EventsController {
     service;
     constructor(service) {
         this.service = service;
     }
-    listPublic(page = "1", pageSize = "6", search, categoryId, minPrice, maxPrice, fromDate, toDate) {
+    listPublic(page, pageSize, search, categoryId, minPrice, maxPrice, fromDate, toDate) {
         return this.service.listPublic({
-            page: Number(page),
-            pageSize: Number(pageSize),
+            page,
+            pageSize,
             search,
             categoryId,
             minPrice: minPrice !== undefined ? Number(minPrice) : undefined,
@@ -52,8 +55,8 @@ let EventsController = class EventsController {
 exports.EventsController = EventsController;
 __decorate([
     (0, common_1.Get)("public"),
-    __param(0, (0, common_1.Query)("page")),
-    __param(1, (0, common_1.Query)("pageSize")),
+    __param(0, (0, common_1.Query)("page", new common_1.DefaultValuePipe(1), common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Query)("pageSize", new common_1.DefaultValuePipe(6), common_1.ParseIntPipe)),
     __param(2, (0, common_1.Query)("search")),
     __param(3, (0, common_1.Query)("categoryId")),
     __param(4, (0, common_1.Query)("minPrice")),
@@ -61,17 +64,21 @@ __decorate([
     __param(6, (0, common_1.Query)("fromDate")),
     __param(7, (0, common_1.Query)("toDate")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String, String, String, String, String, String]),
+    __metadata("design:paramtypes", [Number, Number, String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], EventsController.prototype, "listPublic", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], EventsController.prototype, "listAdmin", null);
 __decorate([
     (0, common_1.Get)(":id"),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
     __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -79,6 +86,8 @@ __decorate([
 ], EventsController.prototype, "get", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [dto_1.CreateEventDto]),
@@ -86,6 +95,8 @@ __decorate([
 ], EventsController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(":id"),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
     __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -94,6 +105,8 @@ __decorate([
 ], EventsController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(":id"),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
     __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

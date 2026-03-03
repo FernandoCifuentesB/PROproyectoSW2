@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { Category } from "@/lib/types";
+import { useAuth } from "@/lib/auth";
 
 type Errors = Partial<Record<"name" | "description" | "server", string>>;
 
 export default function AdminCategoriesPage() {
+  const router = useRouter();
+  const { token, user } = useAuth();
+
   const [items, setItems] = useState<Category[]>([]);
 
   const [name, setName] = useState("");
@@ -18,14 +24,35 @@ export default function AdminCategoriesPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [serverError, setServerError] = useState<string>("");
 
+  // --------------------------
+  // Guard: solo ADMIN
+  // --------------------------
+  useEffect(() => {
+    // Espera a que el AuthProvider cargue localStorage (user puede ser null al inicio)
+    if (token === null) return;
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    if (user?.role !== "ADMIN") {
+      router.push("/");
+      return;
+    }
+  }, [token, user, router]);
+
   async function load() {
     const data = await apiGet<Category[]>("/categories");
     setItems(data);
   }
 
   useEffect(() => {
+    // No cargar data si no es admin (evita requests innecesarios)
+    if (!token || user?.role !== "ADMIN") return;
+
     load().catch(console.error);
-  }, []);
+  }, [token, user]);
 
   const errors: Errors = useMemo(() => {
     const e: Errors = {};
@@ -50,7 +77,10 @@ export default function AdminCategoriesPage() {
     if (!canSubmit) return;
 
     try {
-      await apiPost("/categories", { name: name.trim(), description: description.trim() || null });
+      await apiPost("/categories", {
+        name: name.trim(),
+        description: description.trim() || null,
+      });
       setName("");
       setDescription("");
       setTouched({});
@@ -81,6 +111,15 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  // UI simple mientras redirige / valida
+  if (!token || user?.role !== "ADMIN") {
+    return (
+      <div className="p-6 text-sm text-[var(--muted)]">
+        Verificando acceso...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">Admin · Categorías</h1>
@@ -103,7 +142,9 @@ export default function AdminCategoriesPage() {
             {touched.name && errors.name ? (
               <p className="mt-1 text-xs text-red-600">{errors.name}</p>
             ) : (
-              <p className="mt-1 text-xs text-[var(--muted)]">Ej: Conciertos, Deportes, Tecnología</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Ej: Conciertos, Deportes, Tecnología
+              </p>
             )}
           </div>
 
@@ -117,7 +158,9 @@ export default function AdminCategoriesPage() {
             {touched.description && errors.description ? (
               <p className="mt-1 text-xs text-red-600">{errors.description}</p>
             ) : (
-              <p className="mt-1 text-xs text-[var(--muted)]">Máximo 120 caracteres.</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Máximo 120 caracteres.
+              </p>
             )}
           </div>
 
@@ -131,12 +174,20 @@ export default function AdminCategoriesPage() {
 
       <div className="space-y-3">
         {items.map((c) => (
-          <Card key={c.id} className="flex flex-wrap items-center justify-between gap-3">
+          <Card
+            key={c.id}
+            className="flex flex-wrap items-center justify-between gap-3"
+          >
             <div>
               <div className="font-bold">{c.name}</div>
-              <div className="text-sm text-[var(--muted)]">{c.description ?? "—"}</div>
+              <div className="text-sm text-[var(--muted)]">
+                {c.description ?? "—"}
+              </div>
               <div className="mt-1 text-xs text-[var(--muted)]">
-                Estado: <span className="font-semibold">{c.isActive ? "Activa" : "Inactiva"}</span>
+                Estado:{" "}
+                <span className="font-semibold">
+                  {c.isActive ? "Activa" : "Inactiva"}
+                </span>
               </div>
             </div>
 
@@ -151,7 +202,10 @@ export default function AdminCategoriesPage() {
                 Editar
               </Button>
 
-              <Button variant="outline" onClick={() => save(c.id, { isActive: !c.isActive })}>
+              <Button
+                variant="outline"
+                onClick={() => save(c.id, { isActive: !c.isActive })}
+              >
                 {c.isActive ? "Desactivar" : "Activar"}
               </Button>
 

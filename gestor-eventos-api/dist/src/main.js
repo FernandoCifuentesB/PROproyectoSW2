@@ -11,10 +11,7 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.use((0, helmet_1.default)());
     app.enableCors({
-        origin: [
-            "http://localhost:3001",
-            "http://192.168.1.2:3001",
-        ],
+        origin: true,
         credentials: true,
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
@@ -22,8 +19,12 @@ async function bootstrap() {
         transform: true,
         forbidNonWhitelisted: true,
     }));
+    app.enableCors({
+        origin: ["http://localhost:3001"],
+        credentials: true,
+    });
     await app.listen(3000, "0.0.0.0");
-    console.log("API escuchando en http://192.168.1.2:3000");
+    console.log("API escuchando en http://0.0.0.0:3000");
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

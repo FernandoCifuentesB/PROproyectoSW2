@@ -6,9 +6,17 @@ function requireApiUrl() {
   }
 }
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+
+  const token = localStorage.getItem("token");
+  if (!token) return {};
+
+  return { Authorization: `Bearer ${token}` };
+}
+
 async function parseBody(res: Response) {
   const text = await res.text();
-
   if (!text) return null;
 
   try {
@@ -20,7 +28,6 @@ async function parseBody(res: Response) {
 
 function stringifyErrorBody(body: unknown) {
   if (!body) return "";
-
   if (typeof body === "string") return body;
 
   try {
@@ -43,32 +50,52 @@ async function handleResponse<T>(res: Response, method: string, path: string): P
 
 export async function apiGet<T>(path: string): Promise<T> {
   requireApiUrl();
-  const res = await fetch(`${API}${path}`, { cache: "no-store" });
+
+  const res = await fetch(`${API}${path}`, {
+    cache: "no-store",
+    headers: getAuthHeaders(),
+  });
+
   return handleResponse<T>(res, "GET", path);
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   requireApiUrl();
+
   const res = await fetch(`${API}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
     body: JSON.stringify(body),
   });
+
   return handleResponse<T>(res, "POST", path);
 }
 
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   requireApiUrl();
+
   const res = await fetch(`${API}${path}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
     body: JSON.stringify(body),
   });
+
   return handleResponse<T>(res, "PATCH", path);
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
   requireApiUrl();
-  const res = await fetch(`${API}${path}`, { method: "DELETE" });
+
+  const res = await fetch(`${API}${path}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+
   return handleResponse<T>(res, "DELETE", path);
 }

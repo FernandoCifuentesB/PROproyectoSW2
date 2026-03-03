@@ -1,11 +1,11 @@
 import { InterestsService } from "./interests.service";
-import { ToggleInterestDto } from "./dto";
 export declare class InterestsController {
-    private service;
+    private readonly service;
     constructor(service: InterestsService);
-    toggle(dto: ToggleInterestDto): Promise<{
+    toggle(req: any, body: {
+        eventId: string;
+    }): Promise<{
         interested: boolean;
-        interestCount: any;
+        interestCount: number;
     }>;
-    reportTop(): Promise<any>;
 }

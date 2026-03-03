@@ -1,60 +1,65 @@
 import { PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.favorite.deleteMany();
   await prisma.interest.deleteMany();
   await prisma.event.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.user.deleteMany();
 
-  const conciertos = await prisma.category.create({
-    data: { name: "Conciertos", description: "Música en vivo" },
-  });
-  const deporte = await prisma.category.create({
-    data: { name: "Deporte", description: "Eventos deportivos" },
-  });
+  const adminPass = await bcrypt.hash("admin123", 10);
+  const userPass = await bcrypt.hash("user123", 10);
 
-  const now = new Date();
-
-  const ev1 = await prisma.event.create({
+  const admin = await prisma.user.create({
     data: {
-      name: "Festival Rock",
-      description: "Una noche de rock con varias bandas.",
-      date: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
-      price: 50000,
-      imageUrl: "https://picsum.photos/seed/rock/800/450",
-      categoryId: conciertos.id,
+      name: "Admin",
+      email: "admin@demo.com",
+      password: adminPass,
+      role: "ADMIN",
     },
   });
 
-  const ev2 = await prisma.event.create({
+  const user = await prisma.user.create({
     data: {
-      name: "Carrera 10K",
-      description: "Corre con tu combo, incluye hidratación.",
-      date: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
-      price: 30000,
-      imageUrl: "https://picsum.photos/seed/run/800/450",
-      categoryId: deporte.id,
+      name: "User Demo",
+      email: "user@demo.com",
+      password: userPass,
+      role: "USER",
     },
   });
 
-  // Intereses fake
-  await prisma.interest.createMany({
-    data: [
-      { userId: "user-1", eventId: ev1.id },
-      { userId: "user-2", eventId: ev1.id },
-      { userId: "user-3", eventId: ev2.id },
-    ],
+  const cat1 = await prisma.category.create({
+    data: { name: "Conciertos", description: "Eventos musicales" },
   });
 
-  console.log("Seed listo ✅");
+  const cat2 = await prisma.category.create({
+    data: { name: "Tecnología", description: "Meetups tech" },
+  });
+
+  const categories = [cat1, cat2];
+
+  for (let i = 1; i <= 20; i++) {
+    await prisma.event.create({
+      data: {
+        name: `Evento ${i}`,
+        description: `Descripción del evento número ${i}.`,
+        date: new Date(Date.now() + i * 86400000),
+        price: i * 10000,
+        imageUrl: null,
+        categoryId: categories[i % 2].id,
+        isActive: true,
+      },
+    });
+  }
+
+  console.log("🔥 20 eventos creados");
+  console.log("ADMIN: admin@demo.com / admin123");
+  console.log("USER: user@demo.com / user123");
 }
 
 main()
-  .catch(e => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

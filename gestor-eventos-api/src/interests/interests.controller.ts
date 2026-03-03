@@ -1,18 +1,18 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Post, Req, UseGuards } from "@nestjs/common";
 import { InterestsService } from "./interests.service";
-import { ToggleInterestDto } from "./dto";
+import { AuthGuard } from "@nestjs/passport";
+import { Roles } from "../auth/roles.decorator";
+import { RolesGuard } from "../auth/roles.guard";
 
 @Controller("interests")
 export class InterestsController {
-  constructor(private service: InterestsService) {}
+  constructor(private readonly service: InterestsService) { }
 
   @Post("toggle")
-  toggle(@Body() dto: ToggleInterestDto) {
-    return this.service.toggle(dto);
-  }
-
-  @Get("report/top")
-  reportTop() {
-    return this.service.reportTop();
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("USER", "ADMIN")
+  toggle(@Req() req: any, @Body() body: { eventId: string }) {
+    const userId = req.user.userId;
+    return this.service.toggle(userId, body.eventId);
   }
 }

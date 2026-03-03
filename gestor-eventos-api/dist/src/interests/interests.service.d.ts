@@ -1,11 +1,17 @@
 import { PrismaService } from "../prisma/prisma.service";
-import { ToggleInterestDto } from "./dto";
 export declare class InterestsService {
     private prisma;
     constructor(prisma: PrismaService);
-    toggle(dto: ToggleInterestDto): Promise<{
+    toggle(userId: string, eventId: string): Promise<{
         interested: boolean;
-        interestCount: any;
+        interestCount: number;
     }>;
-    reportTop(): Promise<any>;
+    reportTop(): Promise<{
+        eventId: string;
+        name: string;
+        category: string;
+        interestCount: number;
+        date: Date;
+        price: number;
+    }[]>;
 }

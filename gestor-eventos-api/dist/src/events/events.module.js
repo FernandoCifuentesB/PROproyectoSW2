@@ -10,11 +10,13 @@ exports.EventsModule = void 0;
 const common_1 = require("@nestjs/common");
 const events_controller_1 = require("./events.controller");
 const events_service_1 = require("./events.service");
+const prisma_module_1 = require("../prisma/prisma.module");
 let EventsModule = class EventsModule {
 };
 exports.EventsModule = EventsModule;
 exports.EventsModule = EventsModule = __decorate([
     (0, common_1.Module)({
+        imports: [prisma_module_1.PrismaModule],
         controllers: [events_controller_1.EventsController],
         providers: [events_service_1.EventsService],
     })

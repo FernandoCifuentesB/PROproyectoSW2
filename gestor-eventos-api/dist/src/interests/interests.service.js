@@ -17,22 +17,22 @@ let InterestsService = class InterestsService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async toggle(dto) {
-        const ev = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
+    async toggle(userId, eventId) {
+        const ev = await this.prisma.event.findUnique({ where: { id: eventId } });
         if (!ev)
             throw new common_1.NotFoundException("Evento no existe");
         const existing = await this.prisma.interest.findUnique({
-            where: { userId_eventId: { userId: dto.userId, eventId: dto.eventId } },
+            where: { userId_eventId: { userId, eventId } },
         });
         if (existing) {
             await this.prisma.interest.delete({ where: { id: existing.id } });
-            const count = await this.prisma.interest.count({ where: { eventId: dto.eventId } });
+            const count = await this.prisma.interest.count({ where: { eventId } });
             return { interested: false, interestCount: count };
         }
         await this.prisma.interest.create({
-            data: { userId: dto.userId, eventId: dto.eventId },
+            data: { userId, eventId },
         });
-        const count = await this.prisma.interest.count({ where: { eventId: dto.eventId } });
+        const count = await this.prisma.interest.count({ where: { eventId } });
         return { interested: true, interestCount: count };
     }
     async reportTop() {
@@ -40,7 +40,7 @@ let InterestsService = class InterestsService {
             orderBy: { interests: { _count: "desc" } },
             include: { _count: { select: { interests: true } }, category: true },
         });
-        return events.map(e => ({
+        return events.map((e) => ({
             eventId: e.id,
             name: e.name,
             category: e.category.name,
