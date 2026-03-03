@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InterestsController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const common_2 = require("@nestjs/common");
 const interests_service_1 = require("./interests.service");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const roles_guard_1 = require("../auth/roles.guard");
@@ -24,17 +25,21 @@ let InterestsController = class InterestsController {
         this.service = service;
     }
     toggle(req, body) {
-        const userId = req?.user?.userId;
-        if (!userId) {
-            throw new Error("No llegó req.user.userId (token inválido o JWT strategy no aplicada)");
-        }
-        if (!body?.eventId) {
-            throw new Error("Falta eventId en el body");
-        }
+        const userId = req.user.userId;
         return this.service.toggle(userId, body.eventId);
+    }
+    myFavorites(req) {
+        const userId = req.user.userId;
+        return this.service.myFavorites(userId);
+    }
+    reportByEvent() {
+        return this.service.reportByEvent();
     }
     reportTop() {
         return this.service.reportTop();
+    }
+    getUsersByEvent(eventId) {
+        return this.service.getUsersByEvent(eventId);
     }
 };
 exports.InterestsController = InterestsController;
@@ -49,6 +54,23 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], InterestsController.prototype, "toggle", null);
 __decorate([
+    (0, common_1.Get)("me"),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("USER", "ADMIN"),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], InterestsController.prototype, "myFavorites", null);
+__decorate([
+    (0, common_1.Get)("report/by-event"),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], InterestsController.prototype, "reportByEvent", null);
+__decorate([
     (0, common_1.Get)("report/top"),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)("ADMIN"),
@@ -56,6 +78,15 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], InterestsController.prototype, "reportTop", null);
+__decorate([
+    (0, common_1.Get)("event/:eventId"),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ADMIN"),
+    __param(0, (0, common_2.Param)("eventId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], InterestsController.prototype, "getUsersByEvent", null);
 exports.InterestsController = InterestsController = __decorate([
     (0, common_1.Controller)("interests"),
     __metadata("design:paramtypes", [interests_service_1.InterestsService])

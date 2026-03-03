@@ -29,11 +29,63 @@ let InterestsService = class InterestsService {
             const count = await this.prisma.interest.count({ where: { eventId } });
             return { interested: false, interestCount: count };
         }
-        await this.prisma.interest.create({
-            data: { userId, eventId },
-        });
+        await this.prisma.interest.create({ data: { userId, eventId } });
         const count = await this.prisma.interest.count({ where: { eventId } });
         return { interested: true, interestCount: count };
+    }
+    async myFavorites(userId) {
+        const rows = await this.prisma.interest.findMany({
+            where: { userId },
+            orderBy: { createdAt: "desc" },
+            include: {
+                event: {
+                    include: {
+                        category: true,
+                        _count: { select: { interests: true } },
+                    },
+                },
+            },
+        });
+        return rows.map((r) => ({
+            eventId: r.event.id,
+            name: r.event.name,
+            description: r.event.description,
+            date: r.event.date,
+            price: r.event.price,
+            imageUrl: r.event.imageUrl,
+            category: r.event.category,
+            interestCount: r.event._count.interests,
+            interestedAt: r.createdAt,
+        }));
+    }
+    async reportByEvent() {
+        const events = await this.prisma.event.findMany({
+            orderBy: { interests: { _count: "desc" } },
+            include: {
+                category: true,
+                _count: { select: { interests: true } },
+                interests: {
+                    orderBy: { createdAt: "desc" },
+                    include: {
+                        user: { select: { id: true, email: true, role: true } },
+                    },
+                },
+            },
+        });
+        return events.map((e) => ({
+            eventId: e.id,
+            name: e.name,
+            category: e.category.name,
+            date: e.date,
+            price: e.price,
+            interestCount: e._count.interests,
+            users: e.interests.map((i) => ({
+                id: i.user.id,
+                email: i.user.email,
+                role: i.user.role,
+                interestedAt: i.createdAt,
+            })),
+        }));
     }
     async reportTop() {
         const events = await this.prisma.event.findMany({
@@ -51,6 +103,35 @@ let InterestsService = class InterestsService {
             date: e.date,
             price: e.price,
         }));
+    }
+    async getUsersByEvent(eventId) {
+        const ev = await this.prisma.event.findUnique({
+            where: { id: eventId },
+            include: {
+                category: true,
+                interests: {
+                    orderBy: { createdAt: "desc" },
+                    include: {
+                        user: { select: { id: true, email: true, role: true } },
+                    },
+                },
+                _count: { select: { interests: true } },
+            },
+        });
+        if (!ev)
+            throw new common_1.NotFoundException("Evento no existe");
+        return {
+            eventId: ev.id,
+            name: ev.name,
+            category: ev.category.name,
+            interestCount: ev._count.interests,
+            users: ev.interests.map((i) => ({
+                id: i.user.id,
+                email: i.user.email,
+                role: i.user.role,
+                interestedAt: i.createdAt,
+            })),
+        };
     }
 };
 exports.InterestsService = InterestsService;
