@@ -24,7 +24,7 @@ export default function TopPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">🔥 Top eventos por interés</h1>
+      <h1 className="text-2xl font-extrabold">EVENTOS CON MÁS INTERÉS</h1>
       <p className="text-sm text-[var(--muted)]">Ranking automático según la cantidad de usuarios interesados.</p>
 
       <Card className="overflow-hidden p-0">

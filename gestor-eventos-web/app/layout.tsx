@@ -6,7 +6,7 @@ import Navbar from "@/components/ui/Navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Gestor de Eventos",
+  title: "QUE-BOLETA 🎫 - Gestor de Eventos",
   description: "Explora eventos y marca tus favoritos",
 };
 

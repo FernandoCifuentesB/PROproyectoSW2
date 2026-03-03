@@ -6,6 +6,12 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum Role {
+  ADMIN
+  USER
+}
+
 model Category {
   id          String   @id @default(uuid())
   name        String   @unique
@@ -32,19 +38,52 @@ model Event {
   category      Category @relation(fields: [categoryId], references: [id])
 
   interests     Interest[]
+  favorites     Favorite[]
 
   @@index([categoryId])
   @@index([date])
 }
 
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  interests Interest[]
+  favorites Favorite[]
+
+  @@map("users")
+}
+
 model Interest {
   id        String   @id @default(uuid())
-  userId    String   // luego lo conectas con auth; por ahora string
+  userId    String
   eventId   String
   createdAt DateTime @default(now())
 
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@index([eventId])
+  @@index([userId])
+  @@map("interests")
+}
+
+model Favorite {
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
+  @@index([eventId])
+  @@map("favorites")
 }

@@ -41,9 +41,9 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white/10 to-white/0 p-6">
-        <h1 className="text-2xl font-extrabold">Encuentra tu próximo plan ✨</h1>
+        <h1 className="text-2xl font-extrabold">Encuentra tu próximo plan </h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Filtra por tipo de evento, busca por nombre y marca los que te interesan.
+          Filtra por tipo de evento por categoría o nombre, según los que te interesan.
         </p>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
