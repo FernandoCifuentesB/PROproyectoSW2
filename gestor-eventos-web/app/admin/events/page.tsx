@@ -126,8 +126,21 @@ export default function AdminEventsPage() {
 
     if (!categoryId) e.categoryId = "Seleccione una categoría.";
 
-    if (!date) e.date = "La fecha es obligatoria.";
-    else if (Number.isNaN(new Date(date).getTime())) e.date = "Fecha inválida.";
+    if (!date) {
+      e.date = "La fecha es obligatoria.";
+    } else {
+      const eventDate = new Date(date);
+
+      if (Number.isNaN(eventDate.getTime())) {
+        e.date = "Fecha inválida.";
+      } else {
+        const now = new Date();
+
+        if (eventDate <= now) {
+          e.date = "El evento debe programarse en una fecha futura.";
+        }
+      }
+    }
 
     if (!price.trim()) e.price = "El precio es obligatorio.";
     else {
@@ -161,8 +174,21 @@ export default function AdminEventsPage() {
 
     if (!eCategoryId) e.categoryId = "Seleccione una categoría.";
 
-    if (!eDate) e.date = "La fecha es obligatoria.";
-    else if (Number.isNaN(new Date(eDate).getTime())) e.date = "Fecha inválida.";
+    if (!eDate) {
+      e.date = "La fecha es obligatoria.";
+    } else {
+      const eventDate = new Date(eDate);
+
+      if (Number.isNaN(eventDate.getTime())) {
+        e.date = "Fecha inválida.";
+      } else {
+        const now = new Date();
+
+        if (eventDate <= now) {
+          e.date = "El evento debe programarse en una fecha futura.";
+        }
+      }
+    }
 
     if (!ePrice.trim()) e.price = "El precio es obligatorio.";
     else {
@@ -190,11 +216,19 @@ export default function AdminEventsPage() {
     setServerError("");
     if (!canSubmit) return;
 
+    const eventDate = new Date(date);
+    const now = new Date();
+
+    if (eventDate <= now) {
+      setServerError("El evento debe programarse en una fecha futura.");
+      return;
+    }
+
     try {
       await apiPost("/events", {
         name: name.trim(),
         categoryId,
-        date: new Date(date).toISOString(),
+        date: eventDate.toISOString(),
         price: Number(price),
         imageUrl: imageUrl.trim() || null,
         description: description.trim(),
@@ -244,11 +278,19 @@ export default function AdminEventsPage() {
   async function saveEdit() {
     if (!editingId || !canSaveEdit) return;
 
+    const eventDate = new Date(eDate);
+    const now = new Date();
+
+    if (eventDate <= now) {
+      alert("El evento debe programarse en una fecha futura.");
+      return;
+    }
+
     try {
       await apiPatch(`/events/${editingId}`, {
         name: eName.trim(),
         categoryId: eCategoryId,
-        date: new Date(eDate).toISOString(),
+        date: eventDate.toISOString(),
         price: Number(ePrice),
         imageUrl: eImageUrl.trim() || null,
         description: eDescription.trim(),
