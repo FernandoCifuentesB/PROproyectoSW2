@@ -83,6 +83,12 @@ export default function Navbar() {
                 >
                   Top
                 </Link>
+                <Link
+                  className={linkClass("/admin/users")}
+                  href="/admin/users"
+                >
+                  Usuarios
+                </Link>
               </>
             ) : null}
           </nav>
@@ -182,6 +188,13 @@ export default function Navbar() {
                             onClick={() => setOpen(false)}
                           >
                             Top
+                          </Link>
+                          <Link
+                            href="/admin/users"
+                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
+                            onClick={() => setOpen(false)}
+                          >
+                            Usuarios
                           </Link>
                         </>
                       ) : null}
