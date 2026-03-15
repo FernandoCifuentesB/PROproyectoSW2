@@ -1,83 +1,187 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
 
 export default function Navbar() {
   const { token, user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   const role = user?.role;
   const displayName = user?.name ?? "Usuario";
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = role === "ADMIN";
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const chipClasses = isAdmin
+    ? "border-purple-500/40 bg-purple-500/15 text-purple-700"
+    : "border-blue-500/40 bg-blue-500/15 text-blue-700";
+
   return (
-    <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link href="/" className="text-lg font-bold">
           QUE-BOLETA 🎫
         </Link>
 
         <div className="flex items-center gap-6">
-          <nav className="flex gap-4 text-sm text-[var(--muted)]">
-            <Link className="hover:text-white" href="/">
+          <nav className="flex items-center gap-4 text-sm text-[var(--muted)]">
+            <Link className="hover:text-[var(--fg)]" href="/">
               Eventos
             </Link>
 
-            {/* USER */}
             {token && role === "USER" ? (
-              <Link className="hover:text-white" href="/me/favorites">
+              <Link className="hover:text-[var(--fg)]" href="/me/favorites">
                 Mis favoritos
               </Link>
             ) : null}
 
-            {/* ADMIN */}
             {token && role === "ADMIN" ? (
               <>
-                <Link className="hover:text-white" href="/admin/events">
+                <Link className="hover:text-[var(--fg)]" href="/admin/events">
                   Admin Eventos
                 </Link>
-                <Link className="hover:text-white" href="/admin/categories">
+                <Link
+                  className="hover:text-[var(--fg)]"
+                  href="/admin/categories"
+                >
                   Admin Categorías
                 </Link>
-                <Link className="hover:text-white" href="/reports/top">
+                <Link className="hover:text-[var(--fg)]" href="/reports/top">
                   Top
                 </Link>
               </>
             ) : null}
           </nav>
 
-          {/* Derecha: invitado -> login/register | logueado -> rol + logout */}
-          <div className="flex items-center gap-2">
+          <div className="relative" ref={menuRef}>
             {!token ? (
-              <>
+              <div className="flex items-center gap-2">
                 <Link href="/login">
                   <Button variant="outline">Log in</Button>
                 </Link>
                 <Link href="/register">
-                  <Button>Registrate</Button>
+                  <Button>Regístrate</Button>
                 </Link>
-              </>
+              </div>
             ) : (
               <>
-                <span
+                <button
+                  type="button"
+                  onClick={() => setOpen((prev) => !prev)}
                   className={[
-                    "rounded-full border px-3 py-1 text-xs font-semibold",
-                    isAdmin
-                      ? "border-purple-600/40 bg-purple-800/15 text-purple-600"
-                      : "border-blue-600/40 bg-blue-800/15 text-blue-600",
+                    "inline-flex items-center rounded-full border px-3 py-2 text-sm font-semibold transition hover:brightness-95",
+                    chipClasses,
                   ].join(" ")}
                 >
-                  {displayName}
-                </span>
+                  <span className="max-w-[110px] truncate">{displayName}</span>
+                </button>
 
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    logout();
-                    window.location.href = "/";
-                  }}
-                >
-                  Log out
-                </Button>
+                {open ? (
+                  <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-3xl border border-[var(--border)] bg-white shadow-xl">
+                    <div
+                      className={[
+                        "px-5 py-5",
+                        isAdmin ? "bg-purple-50" : "bg-blue-50",
+                      ].join(" ")}
+                    >
+                      <div className="mb-3 flex justify-center">
+                        <div
+                          className={[
+                            "flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold",
+                            isAdmin
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-blue-100 text-blue-700",
+                          ].join(" ")}
+                        >
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className="font-bold text-[var(--fg)]">
+                          {displayName}
+                        </div>
+                        <div className="mt-1 break-all text-sm text-[var(--muted)]">
+                          {user?.email}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-2">
+                      <Link
+                        href="/"
+                        className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
+                        onClick={() => setOpen(false)}
+                      >
+                        Eventos
+                      </Link>
+
+                      {role === "USER" ? (
+                        <Link
+                          href="/me/favorites"
+                          className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
+                          onClick={() => setOpen(false)}
+                        >
+                          Mis favoritos
+                        </Link>
+                      ) : null}
+
+                      {role === "ADMIN" ? (
+                        <>
+                          <Link
+                            href="/admin/events"
+                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
+                            onClick={() => setOpen(false)}
+                          >
+                            Admin Eventos
+                          </Link>
+                          <Link
+                            href="/admin/categories"
+                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
+                            onClick={() => setOpen(false)}
+                          >
+                            Admin Categorías
+                          </Link>
+                          <Link
+                            href="/reports/top"
+                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
+                            onClick={() => setOpen(false)}
+                          >
+                            Top
+                          </Link>
+                        </>
+                      ) : null}
+
+                      <div className="my-2 border-t border-[var(--border)]" />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpen(false);
+                          logout();
+                          window.location.href = "/";
+                        }}
+                        className="block w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Log out
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </>
             )}
           </div>

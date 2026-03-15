@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const t = localStorage.getItem("token");
     const u = localStorage.getItem("user");
+
     if (t && u) {
       setToken(t);
       setUser(JSON.parse(u));
