@@ -21,13 +21,11 @@ export default function AdminCategoriesPage() {
 
   const [items, setItems] = useState<Category[]>([]);
 
-  // create form
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   const [serverError, setServerError] = useState<string>("");
 
-  // edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -35,9 +33,6 @@ export default function AdminCategoriesPage() {
   const [eDescription, setEDescription] = useState("");
   const [eIsActive, setEIsActive] = useState(true);
 
-  // ----------------------------
-  // 🔐 GUARD ADMIN
-  // ----------------------------
   useEffect(() => {
     if (token === null) return;
 
@@ -153,13 +148,36 @@ export default function AdminCategoriesPage() {
   }
 
   if (!token || user?.role !== "ADMIN") {
-    return <div className="p-6 text-sm text-[var(--muted)]">Verificando acceso...</div>;
+    return (
+      <div className="p-6 text-sm text-[var(--muted)]">
+        Verificando acceso...
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">Admin · Categorías</h1>
+    <div className="space-y-8">
+      {/* HEADER */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--fg)]">
+          Gestión de categorías
+        </h1>
 
+        <p className="text-sm text-[var(--muted)]">
+          Administración de las categorías disponibles en la plataforma
+        </p>
+      </div>
+
+      {/* SEPARADOR CREAR */}
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-[var(--border)]" />
+        <h2 className="text-sm font-extrabold uppercase tracking-[0.22em] text-slate-500">
+          Crear categoría
+        </h2>
+        <div className="h-px flex-1 bg-[var(--border)]" />
+      </div>
+
+      {/* FORM CREAR */}
       <Card className="space-y-3">
         {serverError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -168,21 +186,29 @@ export default function AdminCategoriesPage() {
         ) : null}
 
         <div className="grid gap-3 md:grid-cols-3">
-          <div className="md:col-span-1">
-            <Input placeholder="Nombre (único)" value={name} onChange={(e) => setName(e.target.value)} />
-            {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name}</p> : null}
+          <div>
+            <Input
+              placeholder="Nombre (único)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            {errors.name ? (
+              <p className="mt-1 text-xs text-red-600">{errors.name}</p>
+            ) : null}
           </div>
 
-          <div className="md:col-span-1">
+          <div>
             <Input
               placeholder="Descripción (opcional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            {errors.description ? <p className="mt-1 text-xs text-red-600">{errors.description}</p> : null}
+            {errors.description ? (
+              <p className="mt-1 text-xs text-red-600">{errors.description}</p>
+            ) : null}
           </div>
 
-          <div className="md:col-span-1 flex items-start">
+          <div className="flex items-start">
             <Button className="w-full" onClick={create} disabled={!canSubmit}>
               Crear
             </Button>
@@ -190,14 +216,34 @@ export default function AdminCategoriesPage() {
         </div>
       </Card>
 
+      {/* SEPARADOR EXISTENTES */}
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-[var(--border)]" />
+        <h2 className="text-sm font-extrabold uppercase tracking-[0.22em] text-slate-500">
+          Categorías existentes
+        </h2>
+        <div className="h-px flex-1 bg-[var(--border)]" />
+      </div>
+
+      {/* LISTA */}
       <div className="space-y-3">
         {items.map((c) => (
-          <Card key={c.id} className="flex flex-wrap items-center justify-between gap-3">
+          <Card
+            key={c.id}
+            className="flex flex-wrap items-center justify-between gap-3"
+          >
             <div>
               <div className="font-bold">{c.name}</div>
-              <div className="text-sm text-[var(--muted)]">{c.description ?? "—"}</div>
+
+              <div className="text-sm text-[var(--muted)]">
+                {c.description ?? "—"}
+              </div>
+
               <div className="mt-1 text-xs text-[var(--muted)]">
-                Estado: <span className="font-semibold">{c.isActive ? "Activa" : "Inactiva"}</span>
+                Estado:{" "}
+                <span className="font-semibold">
+                  {c.isActive ? "Activa" : "Inactiva"}
+                </span>
               </div>
             </div>
 
@@ -214,7 +260,7 @@ export default function AdminCategoriesPage() {
         ))}
       </div>
 
-      {/* ✅ MODAL EDITAR */}
+      {/* MODAL EDITAR */}
       <Modal
         open={editOpen}
         title="Editar categoría"
@@ -225,26 +271,36 @@ export default function AdminCategoriesPage() {
       >
         <div className="space-y-3">
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="md:col-span-1">
-              <Input placeholder="Nombre" value={eName} onChange={(e) => setEName(e.target.value)} />
-              {editErrors.name ? <p className="mt-1 text-xs text-red-600">{editErrors.name}</p> : null}
+            <div>
+              <Input
+                placeholder="Nombre"
+                value={eName}
+                onChange={(e) => setEName(e.target.value)}
+              />
+              {editErrors.name ? (
+                <p className="mt-1 text-xs text-red-600">{editErrors.name}</p>
+              ) : null}
             </div>
 
-            <div className="md:col-span-1">
+            <div>
               <Input
-                placeholder="Descripción (opcional)"
+                placeholder="Descripción"
                 value={eDescription}
                 onChange={(e) => setEDescription(e.target.value)}
               />
               {editErrors.description ? (
-                <p className="mt-1 text-xs text-red-600">{editErrors.description}</p>
+                <p className="mt-1 text-xs text-red-600">
+                  {editErrors.description}
+                </p>
               ) : null}
             </div>
 
             <div className="md:col-span-2 flex items-center justify-between rounded-2xl border border-[var(--border)] px-4 py-3">
               <div>
                 <div className="font-semibold">Estado</div>
-                <div className="text-xs text-[var(--muted)]">Activa = visible para seleccionar en eventos</div>
+                <div className="text-xs text-[var(--muted)]">
+                  Activa = visible para seleccionar en eventos
+                </div>
               </div>
 
               <Button variant="outline" onClick={() => setEIsActive((v) => !v)}>
@@ -257,6 +313,7 @@ export default function AdminCategoriesPage() {
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               Cancelar
             </Button>
+
             <Button onClick={saveEdit} disabled={!canSaveEdit}>
               Guardar cambios
             </Button>
