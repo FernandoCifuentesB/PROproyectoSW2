@@ -24,7 +24,7 @@ export default function EventCard({
   const [count, setCount] = useState(ev.interestCount ?? 0);
   const [interested, setInterested] = useState(initialInterested);
 
-  // ✅ sincroniza cuando cambie la página o el set de favoritos
+  
   useEffect(() => {
     setInterested(initialInterested);
   }, [initialInterested]);
