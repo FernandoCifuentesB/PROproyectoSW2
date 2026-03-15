@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
 
@@ -9,6 +10,7 @@ export default function Navbar() {
   const { token, user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname();
 
   const role = user?.role;
   const displayName = user?.name ?? "Usuario";
@@ -30,6 +32,18 @@ export default function Navbar() {
     ? "border-purple-500/40 bg-purple-500/15 text-purple-700"
     : "border-blue-500/40 bg-blue-500/15 text-blue-700";
 
+  function linkClass(path: string) {
+    const active =
+      pathname === path || (path !== "/" && pathname.startsWith(path));
+
+    return [
+      "relative pb-2 text-sm transition-all duration-200",
+      active
+        ? "text-[var(--fg)] font-semibold text-base after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:rounded-full after:bg-[var(--primary)]"
+        : "text-[var(--muted)] hover:text-[var(--fg)]",
+    ].join(" ");
+  }
+
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -38,29 +52,35 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-6">
-          <nav className="flex items-center gap-4 text-sm text-[var(--muted)]">
-            <Link className="hover:text-[var(--fg)]" href="/">
+          <nav className="flex items-center gap-4">
+            <Link className={linkClass("/")} href="/">
               Eventos
             </Link>
 
             {token && role === "USER" ? (
-              <Link className="hover:text-[var(--fg)]" href="/me/favorites">
+              <Link className={linkClass("/me/favorites")} href="/me/favorites">
                 Mis favoritos
               </Link>
             ) : null}
 
             {token && role === "ADMIN" ? (
               <>
-                <Link className="hover:text-[var(--fg)]" href="/admin/events">
+                <Link
+                  className={linkClass("/admin/events")}
+                  href="/admin/events"
+                >
                   Admin Eventos
                 </Link>
                 <Link
-                  className="hover:text-[var(--fg)]"
+                  className={linkClass("/admin/categories")}
                   href="/admin/categories"
                 >
                   Admin Categorías
                 </Link>
-                <Link className="hover:text-[var(--fg)]" href="/reports/top">
+                <Link
+                  className={linkClass("/reports/top")}
+                  href="/reports/top"
+                >
                   Top
                 </Link>
               </>
