@@ -26,7 +26,6 @@ function isValidUrl(url: string) {
 }
 
 function toDatetimeLocalValue(iso: string) {
-  // iso -> "YYYY-MM-DDTHH:mm"
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   const yyyy = d.getFullYear();
@@ -45,15 +44,13 @@ export default function AdminEventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [serverError, setServerError] = useState("");
 
-  // create form
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [date, setDate] = useState(""); // datetime-local
+  const [date, setDate] = useState(""); 
   const [price, setPrice] = useState<string>("");
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
 
-  // edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -64,7 +61,6 @@ export default function AdminEventsPage() {
   const [eImageUrl, setEImageUrl] = useState("");
   const [eDescription, setEDescription] = useState("");
 
-  // 🔐 guard admin
   useEffect(() => {
     if (token === null) return;
     if (!token) return router.push("/login");
@@ -222,103 +218,202 @@ export default function AdminEventsPage() {
     return <div className="p-6 text-sm text-[var(--muted)]">Verificando acceso...</div>;
   }
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">Admin · Eventos</h1>
+return (
+  <div className="space-y-10">
 
-      <Card className="space-y-3">
-        {serverError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {serverError}
-          </div>
-        ) : null}
+    {/* HEADER */}
+    <div className="text-center space-y-2 pt-2">
+      <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">
+        Gestión de eventos
+      </h1>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <Input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
-          <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">Seleccione categoría</option>
-            {cats.filter((c) => c.isActive).map((c) => (
+      <p className="text-sm text-[var(--muted)]">
+        Panel de administración para crear, editar y eliminar eventos.
+      </p>
+    </div>
+
+    {/* CREAR EVENTO */}
+    <div className="flex items-center gap-4">
+      <div className="h-px flex-1 bg-[var(--border)]" />
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
+        Crear evento
+      </h2>
+      <div className="h-px flex-1 bg-[var(--border)]" />
+    </div>
+
+    <Card className="space-y-4">
+      {serverError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {serverError}
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <Input
+          placeholder="Nombre"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <Select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+        >
+          <option value="">Seleccione categoría</option>
+          {cats
+            .filter((c) => c.isActive)
+            .map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
-          </Select>
+        </Select>
 
-          <Input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Input type="number" placeholder="Precio" value={price} onChange={(e) => setPrice(e.target.value)} />
+        <Input
+          type="datetime-local"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
 
-          <Input placeholder="URL Imagen (opcional)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-          <Input placeholder="Descripción" value={description} onChange={(e) => setDescription(e.target.value)} />
-        </div>
+        <Input
+          type="number"
+          placeholder="Precio"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+        />
 
+        <Input
+          placeholder="URL Imagen (opcional)"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+        />
+
+        <Input
+          placeholder="Descripción"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+
+      <div className="pt-2">
         <Button onClick={create} disabled={!canSubmit}>
           Crear evento
         </Button>
-      </Card>
+      </div>
+    </Card>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {events.map((ev) => (
-          <Card key={ev.id} className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-bold">{ev.name}</div>
-                <div className="text-sm text-[var(--muted)]">{new Date(ev.date).toLocaleString()}</div>
-                <div className="text-sm text-[var(--muted)]">${ev.price.toLocaleString("es-CO")}</div>
+    {/* EVENTOS EXISTENTES */}
+    <div className="flex items-center gap-4">
+      <div className="h-px flex-1 bg-[var(--border)]" />
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
+        Eventos existentes
+      </h2>
+      <div className="h-px flex-1 bg-[var(--border)]" />
+    </div>
+
+    <div className="grid gap-4 md:grid-cols-2">
+      {events.map((ev) => (
+        <Card key={ev.id} className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="font-bold">{ev.name}</div>
+
+              <div className="text-sm text-[var(--muted)]">
+                {new Date(ev.date).toLocaleString()}
               </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => openEdit(ev)}>
-                  Editar
-                </Button>
-                <Button variant="danger" onClick={() => remove(ev.id)}>
-                  Eliminar
-                </Button>
+              <div className="text-sm text-[var(--muted)]">
+                ${ev.price.toLocaleString("es-CO")}
               </div>
             </div>
 
-            <div className="text-sm text-[var(--muted)] line-clamp-2">{ev.description}</div>
-          </Card>
-        ))}
-      </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => openEdit(ev)}>
+                Editar
+              </Button>
 
-      {/* ✅ MODAL EDITAR */}
-      <Modal
-        open={editOpen}
-        title="Editar evento"
-        onClose={() => {
-          setEditOpen(false);
-          setEditingId(null);
-        }}
-      >
-        <div className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <Input placeholder="Nombre" value={eName} onChange={(e) => setEName(e.target.value)} />
-            <Select value={eCategoryId} onChange={(e) => setECategoryId(e.target.value)}>
-              <option value="">Seleccione categoría</option>
-              {cats.filter((c) => c.isActive).map((c) => (
+              <Button variant="danger" onClick={() => remove(ev.id)}>
+                Eliminar
+              </Button>
+            </div>
+          </div>
+
+          <div className="text-sm text-[var(--muted)] line-clamp-2">
+            {ev.description}
+          </div>
+        </Card>
+      ))}
+    </div>
+
+    {/* MODAL EDITAR */}
+    <Modal
+      open={editOpen}
+      title="Editar evento"
+      onClose={() => {
+        setEditOpen(false);
+        setEditingId(null);
+      }}
+    >
+      <div className="space-y-3">
+        <div className="grid gap-3 md:grid-cols-2">
+          <Input
+            placeholder="Nombre"
+            value={eName}
+            onChange={(e) => setEName(e.target.value)}
+          />
+
+          <Select
+            value={eCategoryId}
+            onChange={(e) => setECategoryId(e.target.value)}
+          >
+            <option value="">Seleccione categoría</option>
+
+            {cats
+              .filter((c) => c.isActive)
+              .map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
-            </Select>
+          </Select>
 
-            <Input type="datetime-local" value={eDate} onChange={(e) => setEDate(e.target.value)} />
-            <Input type="number" placeholder="Precio" value={ePrice} onChange={(e) => setEPrice(e.target.value)} />
+          <Input
+            type="datetime-local"
+            value={eDate}
+            onChange={(e) => setEDate(e.target.value)}
+          />
 
-            <Input placeholder="URL Imagen (opcional)" value={eImageUrl} onChange={(e) => setEImageUrl(e.target.value)} />
-            <Input placeholder="Descripción" value={eDescription} onChange={(e) => setEDescription(e.target.value)} />
-          </div>
+          <Input
+            type="number"
+            placeholder="Precio"
+            value={ePrice}
+            onChange={(e) => setEPrice(e.target.value)}
+          />
 
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={saveEdit} disabled={!canSaveEdit}>
-              Guardar cambios
-            </Button>
-          </div>
+          <Input
+            placeholder="URL Imagen (opcional)"
+            value={eImageUrl}
+            onChange={(e) => setEImageUrl(e.target.value)}
+          />
+
+          <Input
+            placeholder="Descripción"
+            value={eDescription}
+            onChange={(e) => setEDescription(e.target.value)}
+          />
         </div>
-      </Modal>
-    </div>
-  );
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setEditOpen(false)}>
+            Cancelar
+          </Button>
+
+          <Button onClick={saveEdit} disabled={!canSaveEdit}>
+            Guardar cambios
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  </div>
+);
 }
