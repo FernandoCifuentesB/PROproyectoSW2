@@ -33,6 +33,12 @@ export default function AdminCategoriesPage() {
   const [eDescription, setEDescription] = useState("");
   const [eIsActive, setEIsActive] = useState(true);
 
+  const [createOpen, setCreateOpen] = useState(false);
+  const [touched, setTouched] = useState<Record<Field, boolean>>({
+    name: false,
+    description: false,
+  });
+
   useEffect(() => {
     if (token === null) return;
 
@@ -61,17 +67,30 @@ export default function AdminCategoriesPage() {
     const e: Errors = {};
     const n = name.trim();
 
-    if (!n) e.name = "El nombre es obligatorio.";
-    else if (n.length < 3) e.name = "Mínimo 3 caracteres.";
-    else if (n.length > 40) e.name = "Máximo 40 caracteres.";
+    if (touched.name) {
+      if (!n) e.name = "El nombre es obligatorio.";
+      else if (n.length < 3) e.name = "Mínimo 3 caracteres.";
+      else if (n.length > 40) e.name = "Máximo 40 caracteres.";
+    }
 
     const d = description.trim();
-    if (d && d.length > 120) e.description = "Máximo 120 caracteres.";
+    if (touched.description && d && d.length > 120) {
+      e.description = "Máximo 120 caracteres.";
+    }
 
     return e;
-  }, [name, description]);
+  }, [name, description, touched]);
 
-  const canSubmit = Object.keys(errors).length === 0;
+  const rawCanSubmit = useMemo(() => {
+    const n = name.trim();
+    const d = description.trim();
+
+    if (!n) return false;
+    if (n.length < 3 || n.length > 40) return false;
+    if (d.length > 120) return false;
+
+    return true;
+  }, [name, description]);
 
   const editErrors: Errors = useMemo(() => {
     const e: Errors = {};
@@ -92,7 +111,12 @@ export default function AdminCategoriesPage() {
   async function create() {
     setServerError("");
 
-    if (!canSubmit) return;
+    setTouched({
+      name: true,
+      description: true,
+    });
+
+    if (!rawCanSubmit) return;
 
     try {
       await apiPost("/categories", {
@@ -102,6 +126,11 @@ export default function AdminCategoriesPage() {
 
       setName("");
       setDescription("");
+      setTouched({
+        name: false,
+        description: false,
+      });
+      setCreateOpen(false);
       await load();
     } catch (e: any) {
       setServerError(e?.message ?? "Error creando categoría");
@@ -168,55 +197,123 @@ export default function AdminCategoriesPage() {
         </p>
       </div>
 
-      {/* SEPARADOR CREAR */}
+      {/* CREAR */}
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-[var(--border)]" />
-        <h2 className="text-sm font-extrabold uppercase tracking-[0.22em] text-slate-500">
+        <button
+          type="button"
+          onClick={() => setCreateOpen((prev) => !prev)}
+          className="flex items-center gap-3 text-sm font-extrabold uppercase tracking-[0.22em] text-slate-500 transition hover:text-[var(--fg)]"
+        >
           Crear categoría
-        </h2>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-white text-lg font-bold text-[var(--fg)] shadow-sm">
+            {createOpen ? "−" : "+"}
+          </span>
+        </button>
         <div className="h-px flex-1 bg-[var(--border)]" />
       </div>
 
-      {/* FORM CREAR */}
-      <Card className="space-y-3">
-        {serverError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {serverError}
+      {createOpen && (
+        <Card className="overflow-hidden border border-[var(--border)] p-0 shadow-sm">
+          <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+            <div className="mb-1 text-lg font-bold text-[var(--fg)]">
+              Nueva categoría
+            </div>
+            <p className="text-sm text-[var(--muted)]">
+              Crea una categoría para clasificar los eventos del sistema.
+            </p>
           </div>
-        ) : null}
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <div>
-            <Input
-              placeholder="Nombre (único)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            {errors.name ? (
-              <p className="mt-1 text-xs text-red-600">{errors.name}</p>
+          <div className="space-y-4 px-6 py-6">
+            {serverError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {serverError}
+              </div>
             ) : null}
-          </div>
 
-          <div>
-            <Input
-              placeholder="Descripción (opcional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            {errors.description ? (
-              <p className="mt-1 text-xs text-red-600">{errors.description}</p>
-            ) : null}
-          </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[var(--fg)]">
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="Ej. Conciertos, Tecnología, Deportes"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (!touched.name) {
+                      setTouched((prev) => ({ ...prev, name: true }));
+                    }
+                  }}
+                />
+                {errors.name ? (
+                  <p className="mt-1 text-xs text-red-600">{errors.name}</p>
+                ) : (
+                  touched.name && (
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      Entre 3 y 40 caracteres.
+                    </p>
+                  )
+                )}
+              </div>
 
-          <div className="flex items-start">
-            <Button className="w-full" onClick={create} disabled={!canSubmit}>
-              Crear
-            </Button>
-          </div>
-        </div>
-      </Card>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[var(--fg)]">
+                  Descripción
+                </label>
+                <Input
+                  placeholder="Descripción breve (opcional)"
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    if (!touched.description) {
+                      setTouched((prev) => ({
+                        ...prev,
+                        description: true,
+                      }));
+                    }
+                  }}
+                />
+                {errors.description ? (
+                  <p className="mt-1 text-xs text-red-600">
+                    {errors.description}
+                  </p>
+                ) : (
+                  touched.description && (
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      Máximo 120 caracteres.
+                    </p>
+                  )
+                )}
+              </div>
+            </div>
 
-      {/* SEPARADOR EXISTENTES */}
+            <div className="flex flex-wrap justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCreateOpen(false);
+                  setName("");
+                  setDescription("");
+                  setTouched({
+                    name: false,
+                    description: false,
+                  });
+                  setServerError("");
+                }}
+              >
+                Cancelar
+              </Button>
+
+              <Button onClick={create} disabled={!rawCanSubmit}>
+                Guardar categoría
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* EXISTENTES */}
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-[var(--border)]" />
         <h2 className="text-sm font-extrabold uppercase tracking-[0.22em] text-slate-500">
@@ -225,7 +322,6 @@ export default function AdminCategoriesPage() {
         <div className="h-px flex-1 bg-[var(--border)]" />
       </div>
 
-      {/* LISTA */}
       <div className="space-y-3">
         {items.map((c) => (
           <Card
