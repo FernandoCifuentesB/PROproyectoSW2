@@ -318,6 +318,14 @@ export default function AdminEventsPage() {
             </div>
           ) : null}
 
+          <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+            <div className="mb-1 text-lg font-bold text-[var(--fg)]">
+              Nuevo evento
+            </div>
+            <p className="text-sm text-[var(--muted)]">
+              Crea un nuevo evento para mostrar en la plataforma.
+            </p>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <RequiredLabel>Nombre del evento</RequiredLabel>
