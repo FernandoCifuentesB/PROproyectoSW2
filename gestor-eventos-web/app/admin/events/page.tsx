@@ -304,7 +304,7 @@ export default function AdminEventsPage() {
             className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-white text-lg font-semibold text-[var(--fg)] shadow-sm transition hover:bg-slate-50"
             aria-label={createOpen ? "Cerrar formulario" : "Abrir formulario"}
           >
-            {createOpen ? "−" : "+"}
+            {createOpen ? "-" : "+"}
           </button>
         </div>
         <div className="h-px flex-1 bg-[var(--border)]" />
