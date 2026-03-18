@@ -51,6 +51,21 @@ function RequiredLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function StatusBadge({ active }: { active: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+        active
+          ? "bg-green-100 text-green-700"
+          : "bg-slate-200 text-slate-700",
+      ].join(" ")}
+    >
+      {active ? "Activo" : "Inactivo"}
+    </span>
+  );
+}
+
 export default function AdminEventsPage() {
   const router = useRouter();
   const { token, user } = useAuth();
@@ -86,6 +101,7 @@ export default function AdminEventsPage() {
   const [ePrice, setEPrice] = useState<string>("");
   const [eImageUrl, setEImageUrl] = useState("");
   const [eDescription, setEDescription] = useState("");
+  const [eIsActive, setEIsActive] = useState(true);
 
   const [editTouched, setEditTouched] = useState<Record<Field, boolean>>({
     name: false,
@@ -135,7 +151,6 @@ export default function AdminEventsPage() {
         e.date = "Fecha inválida.";
       } else {
         const now = new Date();
-
         if (eventDate <= now) {
           e.date = "El evento debe programarse en una fecha futura.";
         }
@@ -183,7 +198,6 @@ export default function AdminEventsPage() {
         e.date = "Fecha inválida.";
       } else {
         const now = new Date();
-
         if (eventDate <= now) {
           e.date = "El evento debe programarse en una fecha futura.";
         }
@@ -264,6 +278,7 @@ export default function AdminEventsPage() {
     setEPrice(String(ev.price ?? 0));
     setEImageUrl(ev.imageUrl ?? "");
     setEDescription(ev.description ?? "");
+    setEIsActive(ev.isActive ?? true);
     setEditTouched({
       name: false,
       categoryId: false,
@@ -294,6 +309,7 @@ export default function AdminEventsPage() {
         price: Number(ePrice),
         imageUrl: eImageUrl.trim() || null,
         description: eDescription.trim(),
+        isActive: eIsActive,
       });
 
       setEditOpen(false);
@@ -368,6 +384,7 @@ export default function AdminEventsPage() {
               Crea un nuevo evento para mostrar en la plataforma.
             </p>
           </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <RequiredLabel>Nombre del evento</RequiredLabel>
@@ -412,6 +429,7 @@ export default function AdminEventsPage() {
               <Input
                 type="datetime-local"
                 value={date}
+                min={new Date().toISOString().slice(0, 16)}
                 onChange={(e) => {
                   setDate(e.target.value);
                   setTouched((prev) => ({ ...prev, date: true }));
@@ -498,13 +516,18 @@ export default function AdminEventsPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {events.map((ev) => (
-          <Card key={ev.id} className="space-y-2">
+          <Card key={ev.id} className="space-y-3">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-bold">{ev.name}</div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="font-bold">{ev.name}</div>
+                  <StatusBadge active={ev.isActive ?? true} />
+                </div>
+
                 <div className="text-sm text-[var(--muted)]">
                   {new Date(ev.date).toLocaleString()}
                 </div>
+
                 <div className="text-sm text-[var(--muted)]">
                   ${ev.price.toLocaleString("es-CO")}
                 </div>
@@ -580,6 +603,7 @@ export default function AdminEventsPage() {
               <Input
                 type="datetime-local"
                 value={eDate}
+                min={new Date().toISOString().slice(0, 16)}
                 onChange={(e) => {
                   setEDate(e.target.value);
                   setEditTouched((prev) => ({ ...prev, date: true }));
@@ -641,6 +665,30 @@ export default function AdminEventsPage() {
                 <span className="text-xs text-[var(--muted)]">
                   {eDescription.trim().length}/240
                 </span>
+              </div>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-[var(--fg)]">
+                Estado del evento
+              </label>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEIsActive((prev) => !prev)}
+                  className={`relative flex h-8 w-16 items-center rounded-full transition ${
+                    eIsActive ? "bg-green-500" : "bg-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition ${
+                      eIsActive ? "translate-x-9" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+
+                <StatusBadge active={eIsActive} />
               </div>
             </div>
           </div>
