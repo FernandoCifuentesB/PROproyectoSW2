@@ -15,6 +15,45 @@ import { useAuth } from "@/lib/auth";
 type Field = "name" | "description";
 type Errors = Partial<Record<Field | "server", string>>;
 
+function StatusBadge({ active }: { active: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+        active
+          ? "bg-green-100 text-green-700"
+          : "bg-slate-200 text-slate-700",
+      ].join(" ")}
+    >
+      {active ? "Activa" : "Inactiva"}
+    </span>
+  );
+}
+
+function ToggleSwitch({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={`relative flex h-8 w-16 items-center rounded-full transition ${
+        checked ? "bg-green-500" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition ${
+          checked ? "translate-x-9" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+}
+
 export default function AdminCategoriesPage() {
   const router = useRouter();
   const { token, user } = useAuth();
@@ -186,8 +225,7 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="space-y-8">
-      {/* HEADER */}
-      <div className="text-center space-y-2">
+      <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight text-[var(--fg)]">
           Gestión de categorías
         </h1>
@@ -197,7 +235,6 @@ export default function AdminCategoriesPage() {
         </p>
       </div>
 
-      {/* CREAR */}
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-[var(--border)]" />
         <button
@@ -313,7 +350,6 @@ export default function AdminCategoriesPage() {
         </Card>
       )}
 
-      {/* EXISTENTES */}
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-[var(--border)]" />
         <h2 className="text-sm font-extrabold uppercase tracking-[0.22em] text-slate-500">
@@ -328,18 +364,14 @@ export default function AdminCategoriesPage() {
             key={c.id}
             className="flex flex-wrap items-center justify-between gap-3"
           >
-            <div>
-              <div className="font-bold">{c.name}</div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="font-bold">{c.name}</div>
+                <StatusBadge active={!!c.isActive} />
+              </div>
 
               <div className="text-sm text-[var(--muted)]">
                 {c.description ?? "—"}
-              </div>
-
-              <div className="mt-1 text-xs text-[var(--muted)]">
-                Estado:{" "}
-                <span className="font-semibold">
-                  {c.isActive ? "Activa" : "Inactiva"}
-                </span>
               </div>
             </div>
 
@@ -356,7 +388,6 @@ export default function AdminCategoriesPage() {
         ))}
       </div>
 
-      {/* MODAL EDITAR */}
       <Modal
         open={editOpen}
         title="Editar categoría"
@@ -365,8 +396,8 @@ export default function AdminCategoriesPage() {
           setEditingId(null);
         }}
       >
-        <div className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Input
                 placeholder="Nombre"
@@ -391,17 +422,22 @@ export default function AdminCategoriesPage() {
               ) : null}
             </div>
 
-            <div className="md:col-span-2 flex items-center justify-between rounded-2xl border border-[var(--border)] px-4 py-3">
-              <div>
-                <div className="font-semibold">Estado</div>
-                <div className="text-xs text-[var(--muted)]">
-                  Activa = visible para seleccionar en eventos
-                </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-[var(--fg)]">
+                Estado de la categoría
+              </label>
+
+              <div className="flex items-center gap-3">
+                <ToggleSwitch
+                  checked={eIsActive}
+                  onChange={() => setEIsActive((prev) => !prev)}
+                />
+                <StatusBadge active={eIsActive} />
               </div>
 
-              <Button variant="outline" onClick={() => setEIsActive((v) => !v)}>
-                {eIsActive ? "Desactivar" : "Activar"}
-              </Button>
+              <p className="text-xs text-[var(--muted)]">
+                Activa = disponible para seleccionar en la creación de eventos.
+              </p>
             </div>
           </div>
 
