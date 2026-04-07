@@ -21,3 +21,14 @@ body {
   background: var(--bg);
   color: var(--fg);
 }
+
+@media print {
+  body {
+    background: white !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 12mm;
+  }
+}

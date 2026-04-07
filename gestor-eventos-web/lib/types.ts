@@ -41,13 +41,6 @@ export type EventItem = {
   eventTickets?: EventTicket[];
 };
 
-export type Paged<T> = {
-  page: number;
-  pageSize: number;
-  total: number;
-  items: T[];
-};
-
 export type TicketPurchase = {
   id: string;
   userId: string;
@@ -61,4 +54,9 @@ export type TicketPurchase = {
   updatedAt?: string;
   event?: EventItem;
   eventTicket?: EventTicket;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };

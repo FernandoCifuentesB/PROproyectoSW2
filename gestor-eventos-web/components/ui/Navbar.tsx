@@ -1,224 +1,139 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import Button from "@/components/ui/Button";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 
 export default function Navbar() {
   const { token, user, logout } = useAuth();
   const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const pathname = usePathname();
-
-  const role = user?.role;
-  const displayName = user?.name ?? "Usuario";
-  const isAdmin = role === "ADMIN";
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const chipClasses = isAdmin
-    ? "border-purple-500/40 bg-purple-500/15 text-purple-700"
-    : "border-blue-500/40 bg-blue-500/15 text-blue-700";
-
-  function linkClass(path: string) {
-    const active =
-      pathname === path || (path !== "/" && pathname.startsWith(path));
-
-    return [
-      "relative pb-2 text-sm transition-all duration-200",
-      active
-        ? "text-[var(--fg)] font-semibold text-base after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:rounded-full after:bg-[var(--primary)]"
-        : "text-[var(--muted)] hover:text-[var(--fg)]",
-    ].join(" ");
-  }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="text-lg font-bold">
-          QUE-BOLETA 🎫
+    <header className="sticky top-0 z-50 border-b border-blue-900 bg-blue-950 shadow-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+        
+        {/* 🔥 Logo + Nombre */}
+        <Link href="/" className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white shadow">
+            <Image
+              src="/favicon.ico" // 👈 tu logo
+              alt="Que Boleta"
+              width={40}
+              height={40}
+              className="object-contain"
+              priority
+            />
+          </div>
+
+          <div className="flex flex-col leading-none">
+            <span className="text-2xl font-extrabold text-white">
+              Que Boleta
+            </span>
+            <span className="text-xs text-yellow-300">
+              Vive los mejores eventos
+            </span>
+          </div>
         </Link>
 
-        <div className="flex items-center gap-6">
-          <nav className="flex items-center gap-4">
-            <Link className={linkClass("/")} href="/">
-              Eventos
-            </Link>
+        {/* 🔥 Navegación */}
+        <nav className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          >
+            Eventos
+          </Link>
 
-            {token && role === "USER" ? (
-              <Link className={linkClass("/me/favorites")} href="/me/favorites">
-                Mis favoritos
+          {!token && (
+            <div className="flex gap-2">
+              <Link
+                href="/login"
+                className="rounded-full border border-white px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              >
+                Iniciar sesión
               </Link>
-            ) : null}
 
-            {token && role === "ADMIN" ? (
-              <>
-                <Link
-                  className={linkClass("/admin/events")}
-                  href="/admin/events"
-                >
-                  Admin Eventos
-                </Link>
-                <Link
-                  className={linkClass("/admin/categories")}
-                  href="/admin/categories"
-                >
-                  Admin Categorías
-                </Link>
-                <Link
-                  className={linkClass("/reports/top")}
-                  href="/reports/top"
-                >
-                  Top
-                </Link>
-                <Link
-                  className={linkClass("/admin/users")}
-                  href="/admin/users"
-                >
-                  Usuarios
-                </Link>
-              </>
-            ) : null}
-          </nav>
+              <Link
+                href="/register"
+                className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-blue-900 shadow hover:bg-yellow-300"
+              >
+                Registrarse
+              </Link>
+            </div>
+          )}
 
-          <div className="relative" ref={menuRef}>
-            {!token ? (
-              <div className="flex items-center gap-2">
-                <Link href="/login">
-                  <Button variant="outline">Log in</Button>
-                </Link>
-                <Link href="/register">
-                  <Button>Regístrate</Button>
-                </Link>
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setOpen((prev) => !prev)}
-                  className={[
-                    "inline-flex items-center rounded-full border px-3 py-2 text-sm font-semibold transition hover:brightness-95",
-                    chipClasses,
-                  ].join(" ")}
-                >
-                  <span className="max-w-[110px] truncate">{displayName}</span>
-                </button>
+          {token && (
+            <div className="relative">
+              {/* Botón usuario */}
+              <button
+                onClick={() => setOpen((prev) => !prev)}
+                className="flex items-center gap-2 rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-400 font-bold text-blue-900">
+                  {(user?.name || "U").charAt(0).toUpperCase()}
+                </span>
+                <span className="max-w-[120px] truncate">
+                  {user?.name || "Usuario"}
+                </span>
+                <span>▾</span>
+              </button>
 
-                {open ? (
-                  <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-3xl border border-[var(--border)] bg-white shadow-xl">
-                    <div
-                      className={[
-                        "px-5 py-5",
-                        isAdmin ? "bg-purple-50" : "bg-blue-50",
-                      ].join(" ")}
-                    >
-                      <div className="mb-3 flex justify-center">
-                        <div
-                          className={[
-                            "flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold",
-                            isAdmin
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700",
-                          ].join(" ")}
-                        >
-                          {displayName.charAt(0).toUpperCase()}
-                        </div>
-                      </div>
-
-                      <div className="text-center">
-                        <div className="font-bold text-[var(--fg)]">
-                          {displayName}
-                        </div>
-                        <div className="mt-1 break-all text-sm text-[var(--muted)]">
-                          {user?.email}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-2">
-                      <Link
-                        href="/"
-                        className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
-                        onClick={() => setOpen(false)}
-                      >
-                        Eventos
-                      </Link>
-
-                      {role === "USER" ? (
-                        <Link
-                          href="/me/favorites"
-                          className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
-                          onClick={() => setOpen(false)}
-                        >
-                          Mis favoritos
-                        </Link>
-                      ) : null}
-
-                      {role === "ADMIN" ? (
-                        <>
-                          <Link
-                            href="/admin/events"
-                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
-                            onClick={() => setOpen(false)}
-                          >
-                            Admin Eventos
-                          </Link>
-                          <Link
-                            href="/admin/categories"
-                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
-                            onClick={() => setOpen(false)}
-                          >
-                            Admin Categorías
-                          </Link>
-                          <Link
-                            href="/reports/top"
-                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
-                            onClick={() => setOpen(false)}
-                          >
-                            Top
-                          </Link>
-                          <Link
-                            href="/admin/users"
-                            className="block rounded-2xl px-4 py-3 text-sm text-[var(--fg)] hover:bg-slate-50"
-                            onClick={() => setOpen(false)}
-                          >
-                            Usuarios
-                          </Link>
-                        </>
-                      ) : null}
-
-                      <div className="my-2 border-t border-[var(--border)]" />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpen(false);
-                          logout();
-                          window.location.href = "/";
-                        }}
-                        className="block w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
-                      >
-                        Log out
-                      </button>
-                    </div>
+              {/* 🔥 Dropdown */}
+              {open && (
+                <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+                  
+                  {/* Header */}
+                  <div className="bg-blue-950 px-4 py-4 text-white">
+                    <p className="text-xs text-yellow-300">Bienvenido</p>
+                    <p className="truncate text-base font-bold">
+                      {user?.name || "Usuario"}
+                    </p>
                   </div>
-                ) : null}
-              </>
-            )}
-          </div>
-        </div>
+
+                  {/* Opciones */}
+                  <div className="py-2">
+                    <Link
+                      href="/me"
+                      className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-900"
+                      onClick={() => setOpen(false)}
+                    >
+                      Mi cuenta
+                    </Link>
+
+                    <Link
+                      href="/me/favorites"
+                      className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-900"
+                      onClick={() => setOpen(false)}
+                    >
+                      ⭐ Mis favoritos
+                    </Link>
+
+                    <Link
+                      href="/me/purchases"
+                      className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-900"
+                      onClick={() => setOpen(false)}
+                    >
+                      🎟️ Mis compras
+                    </Link>
+
+                    <div className="my-2 border-t border-gray-200" />
+
+                    <button
+                      onClick={() => {
+                        logout();
+                        setOpen(false);
+                      }}
+                      className="block w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Cerrar sesión
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </nav>
       </div>
     </header>
   );
