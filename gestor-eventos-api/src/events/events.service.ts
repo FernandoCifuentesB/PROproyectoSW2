@@ -25,6 +25,7 @@ function safeDate(value?: string) {
   return d;
 }
 
+
 @Injectable()
 export class EventsService {
   constructor(private prisma: PrismaService) {}

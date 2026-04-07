@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   UseGuards,
+  NotFoundException,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 
@@ -20,9 +21,16 @@ import { RolesGuard } from "../auth/roles.guard";
 
 @Controller("events")
 export class EventsController {
-  constructor(private service: EventsService) {}
+  constructor(private service: EventsService) { }
 
-  
+  @Get('public/:id')
+  async findPublicOne(@Param('id') id: string) {
+    const event = await this.service.get(id);
+    if (!event || !event.isActive) {
+      throw new NotFoundException('Evento no encontrado o inactivo');
+    }
+    return event;
+  }
   @Get("public")
   listPublic(
     @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,

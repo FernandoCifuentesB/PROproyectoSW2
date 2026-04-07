@@ -14,12 +14,21 @@ const events_module_1 = require("./events/events.module");
 const interests_module_1 = require("./interests/interests.module");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
+const ticket_types_module_1 = require("./ticket-types/ticket-types.module");
+const event_tickets_module_1 = require("./event-tickets/event-tickets.module");
+const ticket_purchases_module_1 = require("./ticket-purchases/ticket-purchases.module");
+const config_module_1 = require("@nestjs/config/dist/config.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [auth_module_1.AuthModule, prisma_module_1.PrismaModule, categories_module_1.CategoriesModule, events_module_1.EventsModule, interests_module_1.InterestsModule, users_module_1.UsersModule],
+        imports: [config_module_1.ConfigModule.forRoot({
+                envFilePath: '.env',
+                isGlobal: true,
+            }), auth_module_1.AuthModule, prisma_module_1.PrismaModule, categories_module_1.CategoriesModule, events_module_1.EventsModule, interests_module_1.InterestsModule, users_module_1.UsersModule, ticket_types_module_1.TicketTypesModule,
+            event_tickets_module_1.EventTicketsModule,
+            ticket_purchases_module_1.TicketPurchasesModule,],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

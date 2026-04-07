@@ -20,25 +20,27 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  events      Event[]
+  events Event[]
 }
 
 model Event {
-  id            String   @id @default(uuid())
-  name          String
-  description   String
-  date          DateTime
-  price         Int      // COP (sin decimales)
-  imageUrl      String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  date        DateTime
+  price       Int // COP (sin decimales)
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
 
-  interests     Interest[]
-  favorites     Favorite[]
+  interests    Interest[]
+  favorites    Favorite[]
+  eventTickets EventTicket[]
+  purchases    TicketPurchase[]
 
   @@index([categoryId])
   @@index([date])
@@ -54,8 +56,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  interests Interest[]
-  favorites Favorite[]
+  interests       Interest[]
+  favorites       Favorite[]
+  ticketPurchases TicketPurchase[]
 
   @@map("users")
 }
@@ -66,8 +69,8 @@ model Interest {
   eventId   String
   createdAt DateTime @default(now())
 
-  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@index([eventId])
@@ -80,10 +83,67 @@ model Favorite {
   eventId   String
   createdAt DateTime @default(now())
 
-  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@id([userId, eventId])
   @@index([eventId])
   @@map("favorites")
+}
+
+enum PurchaseStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model TicketType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  eventTickets EventTicket[]
+
+  @@map("ticket_types")
+}
+
+model EventTicket {
+  id           String   @id @default(uuid())
+  eventId      String
+  ticketTypeId String
+  price        Int
+  stock        Int
+  sold         Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  event      Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketType TicketType       @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+  purchases  TicketPurchase[]
+
+  @@unique([eventId, ticketTypeId])
+  @@map("event_tickets")
+}
+
+model TicketPurchase {
+  id            String         @id @default(uuid())
+  userId        String
+  eventId       String
+  eventTicketId String
+  quantity      Int
+  unitPrice     Int
+  totalPrice    Int
+  status        PurchaseStatus @default(CONFIRMED)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  eventTicket EventTicket @relation(fields: [eventTicketId], references: [id], onDelete: Restrict)
+
+  @@map("ticket_purchases")
 }

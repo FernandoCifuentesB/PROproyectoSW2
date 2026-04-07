@@ -3,6 +3,30 @@ import { CreateEventDto, UpdateEventDto } from "./dto";
 export declare class EventsController {
     private service;
     constructor(service: EventsService);
+    findPublicOne(id: string): Promise<{
+        interestCount: number;
+        category: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+        };
+        _count: {
+            interests: number;
+        };
+        id: string;
+        name: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string;
+        date: Date;
+        price: number;
+        imageUrl: string | null;
+        categoryId: string;
+    }>;
     listPublic(page: number, pageSize: number, search?: string, categoryId?: string, minPrice?: string, maxPrice?: string, fromDate?: string, toDate?: string): Promise<{
         page: number;
         pageSize: number;
