@@ -32,6 +32,8 @@ export default function TicketReceipt({
     status: purchase.status,
   });
 
+  
+
   return (
     <article
       className={`rounded-2xl border border-gray-200 bg-white p-6 shadow-sm print:break-inside-avoid print:shadow-none ${

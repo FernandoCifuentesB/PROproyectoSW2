@@ -3,15 +3,20 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+
 import { PrismaService } from "@/prisma/prisma.service";
 import { CreateTicketPurchaseDto } from "./dto/create-ticket-purchase.dto";
+import { EventsService } from "@/events/events.service";
 
 @Injectable()
 export class TicketPurchasesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsService: EventsService,
+  ) {}
 
   async create(userId: string, dto: CreateTicketPurchaseDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: userId },
       });
@@ -120,6 +125,10 @@ export class TicketPurchasesService {
         purchase,
       };
     });
+
+    await this.eventsService.clearTopSoldCache();
+
+    return result;
   }
 
   async findMine(userId: string) {

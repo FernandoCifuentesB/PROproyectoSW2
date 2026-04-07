@@ -1,16 +1,16 @@
 import {
   Body,
   Controller,
-  Delete,
   DefaultValuePipe,
+  Delete,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
   UseGuards,
-  NotFoundException,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 
@@ -21,16 +21,24 @@ import { RolesGuard } from "../auth/roles.guard";
 
 @Controller("events")
 export class EventsController {
-  constructor(private service: EventsService) { }
+  constructor(private readonly service: EventsService) {}
 
-  @Get('public/:id')
-  async findPublicOne(@Param('id') id: string) {
+  @Get("public/top-sold")
+  getTopSoldPublicEvents() {
+    return this.service.getTopSoldPublicEvents();
+  }
+
+  @Get("public/:id")
+  async findPublicOne(@Param("id") id: string) {
     const event = await this.service.get(id);
+
     if (!event || !event.isActive) {
-      throw new NotFoundException('Evento no encontrado o inactivo');
+      throw new NotFoundException("Evento no encontrado o inactivo");
     }
+
     return event;
   }
+
   @Get("public")
   listPublic(
     @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -40,7 +48,7 @@ export class EventsController {
     @Query("minPrice") minPrice?: string,
     @Query("maxPrice") maxPrice?: string,
     @Query("fromDate") fromDate?: string,
-    @Query("toDate") toDate?: string
+    @Query("toDate") toDate?: string,
   ) {
     return this.service.listPublic({
       page,
@@ -54,7 +62,6 @@ export class EventsController {
     });
   }
 
-  // Admin
   @Get()
   @UseGuards(AuthGuard("jwt"), RolesGuard)
   @Roles("ADMIN")
