@@ -8,6 +8,8 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Modal from "@/components/ui/Modal";
+import Link from "next/link";
+import { formatCop, getMinTicketPrice } from "@/lib/tickets";
 
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { Category, EventItem } from "@/lib/types";
@@ -515,39 +517,57 @@ export default function AdminEventsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {events.map((ev) => (
-          <Card key={ev.id} className="space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="font-bold">{ev.name}</div>
-                  <StatusBadge active={ev.isActive ?? true} />
+        {events.map((ev) => {
+          const minPrice = getMinTicketPrice(ev);
+          // Determine price to display: if there is an available ticket price, show "Desde ..." else fall back to event.price if defined
+          let priceLabel: React.ReactNode = "Precio no definido";
+          if (minPrice !== null) {
+            priceLabel = `Desde ${formatCop(minPrice)}`;
+          } else if (ev.price !== undefined && ev.price !== null) {
+            priceLabel = formatCop(ev.price);
+          }
+
+          return (
+            <Card key={ev.id} className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="font-bold">{ev.name}</div>
+                    <StatusBadge active={ev.isActive ?? true} />
+                  </div>
+
+                  <div className="text-sm text-[var(--muted)]">
+                    {new Date(ev.date).toLocaleString()}
+                  </div>
+
+                  <div className="text-sm text-[var(--muted)]">
+                    {priceLabel}
+                  </div>
                 </div>
 
-                <div className="text-sm text-[var(--muted)]">
-                  {new Date(ev.date).toLocaleString()}
-                </div>
-
-                <div className="text-sm text-[var(--muted)]">
-                  ${ev.price.toLocaleString("es-CO")}
+                <div className="flex gap-2 flex-wrap">
+                  <Button variant="outline" onClick={() => openEdit(ev)}>
+                    Editar
+                  </Button>
+                  <Button variant="danger" onClick={() => remove(ev.id)}>
+                    Eliminar
+                  </Button>
+                  {/* Link to manage tickets for this event */}
+                  <Link
+                    href={`/admin/event-tickets?eventId=${ev.id}`}
+                    className="rounded-xl border px-3 py-2 text-sm text-[var(--fg)] hover:bg-slate-50"
+                  >
+                    Gestionar entradas
+                  </Link>
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => openEdit(ev)}>
-                  Editar
-                </Button>
-                <Button variant="danger" onClick={() => remove(ev.id)}>
-                  Eliminar
-                </Button>
+              <div className="line-clamp-2 text-sm text-[var(--muted)]">
+                {ev.description}
               </div>
-            </div>
-
-            <div className="line-clamp-2 text-sm text-[var(--muted)]">
-              {ev.description}
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
       <Modal

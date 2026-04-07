@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
 import { apiGet } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import EventCard from "@/components/events/EventCard";
 
-type FavEvent = {
+type FavoriteRow = {
   eventId: string;
   name: string;
   description: string;
   date: string;
-  price: number;
+  price?: number | null;
   imageUrl?: string | null;
   category?: { id: string; name: string };
-  interestCount: number;
+  eventTickets?: any[];
+  interestCount?: number;
   interestedAt: string;
 };
 
@@ -23,7 +23,7 @@ export default function FavoritesPage() {
   const { token, user } = useAuth();
   const router = useRouter();
 
-  const [items, setItems] = useState<FavEvent[]>([]);
+  const [items, setItems] = useState<FavoriteRow[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function FavoritesPage() {
   useEffect(() => {
     if (!token) return;
 
-    apiGet<FavEvent[]>("/interests/me")
+    apiGet<FavoriteRow[]>("/interests/me")
       .then(setItems)
       .catch((e: any) => {
         console.error(e);
@@ -61,22 +61,29 @@ export default function FavoritesPage() {
     }
   }
 
-  const mappedEvents = items.map((item) => ({
-    id: item.eventId,
-    name: item.name,
-    description: item.description,
-    date: item.date,
-    price: item.price,
-    imageUrl: item.imageUrl ?? null,
-    category: item.category,
-  }));
+  const mappedEvents = useMemo(
+    () =>
+      items.map((item) => ({
+        id: item.eventId,
+        name: item.name,
+        description: item.description,
+        date: item.date,
+        price: item.price ?? null,
+        imageUrl: item.imageUrl ?? null,
+        category: item.category,
+        eventTickets: item.eventTickets ?? [],
+      })),
+    [items]
+  );
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">Mis favoritos</h1>
-      <p className="text-sm text-[var(--muted)]">
-        Eventos que marcaste como “Me interesa”.
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight">Mis favoritos</h1>
+        <p className="mt-2 text-[var(--muted)]">
+          Eventos que marcaste como “Me interesa”.
+        </p>
+      </div>
 
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
