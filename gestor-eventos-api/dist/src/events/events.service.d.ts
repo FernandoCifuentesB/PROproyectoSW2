@@ -1,24 +1,39 @@
+import type { Cache } from "cache-manager";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateEventDto, UpdateEventDto } from "./dto";
-type PublicQuery = {
-    page: number;
-    pageSize: number;
-    search?: string;
-    categoryId?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    fromDate?: string;
-    toDate?: string;
-};
 export declare class EventsService {
-    private prisma;
-    constructor(prisma: PrismaService);
-    listPublic(q: PublicQuery): Promise<{
-        page: number;
-        pageSize: number;
+    private readonly prisma;
+    private readonly cacheManager;
+    private readonly topSoldCacheKey;
+    constructor(prisma: PrismaService, cacheManager: Cache);
+    getTopSoldPublicEvents(): Promise<any[]>;
+    clearTopSoldCache(): Promise<void>;
+    listPublic(query: any): Promise<{
+        page: any;
+        pageSize: any;
         total: number;
         items: {
             interestCount: number;
+            eventTickets: ({
+                ticketType: {
+                    id: string;
+                    name: string;
+                    isActive: boolean;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    description: string | null;
+                };
+            } & {
+                id: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                price: number;
+                eventId: string;
+                ticketTypeId: string;
+                stock: number;
+                sold: number;
+            })[];
             category: {
                 id: string;
                 name: string;
@@ -44,6 +59,26 @@ export declare class EventsService {
     }>;
     listAdmin(): Promise<{
         interestCount: number;
+        eventTickets: ({
+            ticketType: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string | null;
+            };
+        } & {
+            id: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            price: number;
+            eventId: string;
+            ticketTypeId: string;
+            stock: number;
+            sold: number;
+        })[];
         category: {
             id: string;
             name: string;
@@ -68,6 +103,26 @@ export declare class EventsService {
     }[]>;
     get(id: string): Promise<{
         interestCount: number;
+        eventTickets: ({
+            ticketType: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string | null;
+            };
+        } & {
+            id: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            price: number;
+            eventId: string;
+            ticketTypeId: string;
+            stock: number;
+            sold: number;
+        })[];
         category: {
             id: string;
             name: string;
@@ -127,4 +182,3 @@ export declare class EventsService {
         categoryId: string;
     }>;
 }
-export {};

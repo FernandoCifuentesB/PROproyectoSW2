@@ -12,13 +12,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TicketPurchasesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const events_service_1 = require("../events/events.service");
 let TicketPurchasesService = class TicketPurchasesService {
     prisma;
-    constructor(prisma) {
+    eventsService;
+    constructor(prisma, eventsService) {
         this.prisma = prisma;
+        this.eventsService = eventsService;
     }
     async create(userId, dto) {
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
             const user = await tx.user.findUnique({
                 where: { id: userId },
             });
@@ -99,6 +102,8 @@ let TicketPurchasesService = class TicketPurchasesService {
                 purchase,
             };
         });
+        await this.eventsService.clearTopSoldCache();
+        return result;
     }
     async findMine(userId) {
         const user = await this.prisma.user.findUnique({
@@ -146,6 +151,7 @@ let TicketPurchasesService = class TicketPurchasesService {
 exports.TicketPurchasesService = TicketPurchasesService;
 exports.TicketPurchasesService = TicketPurchasesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        events_service_1.EventsService])
 ], TicketPurchasesService);
 //# sourceMappingURL=ticket-purchases.service.js.map

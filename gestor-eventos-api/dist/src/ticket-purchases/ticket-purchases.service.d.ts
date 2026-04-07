@@ -1,8 +1,10 @@
 import { PrismaService } from "@/prisma/prisma.service";
 import { CreateTicketPurchaseDto } from "./dto/create-ticket-purchase.dto";
+import { EventsService } from "@/events/events.service";
 export declare class TicketPurchasesService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly eventsService;
+    constructor(prisma: PrismaService, eventsService: EventsService);
     create(userId: string, dto: CreateTicketPurchaseDto): Promise<{
         message: string;
         purchase: {

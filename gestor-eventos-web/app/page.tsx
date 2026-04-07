@@ -128,85 +128,92 @@ export default function HomePage() {
       </section>
 
       <section className="mb-10">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-blue-950">
-              Top 3 más vendidos
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Se muestran únicamente eventos activos.
-            </p>
-          </div>
-        </div>
+  {/* 🔥 TÍTULO */}
+  <div className="mb-8 text-center">
+    <h2 className="text-3xl font-extrabold text-blue-950">
+      Top 3 más vendidos
+    </h2>
+    <div className="mx-auto mt-2 h-1 w-16 rounded-full bg-yellow-400"></div>
+  </div>
 
-        <div className="grid gap-5 md:grid-cols-3">
-          {topSold.map((event, index) => {
-            const minPrice = getMinTicketPrice(event);
-            return (
-              <Card
-                key={event.id}
-                className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm"
-              >
-                {event.imageUrl ? (
-                  <img
-                    src={event.imageUrl}
-                    alt={event.name}
-                    className="h-48 w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-48 items-center justify-center bg-blue-50 text-sm text-blue-900">
-                    Sin imagen
-                  </div>
-                )}
+  {/* 🔥 CARDS */}
+  <div className="grid gap-6 md:grid-cols-3">
+    {topSold.map((event, index) => {
+      const minPrice = getMinTicketPrice(event);
 
-                <div className="p-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-bold text-blue-950">
-                      #{index + 1} más vendido
-                    </span>
-                    <span className="text-xs font-semibold text-gray-500">
-                      {event.soldCount} entradas
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-blue-950">
-                    {event.name}
-                  </h3>
-
-                  <p className="mt-2 line-clamp-2 text-sm text-gray-600">
-                    {event.description}
-                  </p>
-
-                  <p className="mt-3 text-sm text-gray-500">
-                    {new Date(event.date).toLocaleString("es-CO")}
-                  </p>
-
-                  <p className="mt-2 text-base font-semibold text-blue-900">
-                    {minPrice !== null
-                      ? `Desde ${formatCop(minPrice)}`
-                      : "Precio por definir"}
-                  </p>
-
-                  <div className="mt-4">
-                    <Button
-                      onClick={() => handleBuy(event.id)}
-                      className="w-full bg-blue-950 text-white hover:bg-blue-900"
-                    >
-                      Ver evento
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-
-          {!topSold.length && (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-600 md:col-span-3">
-              Aún no hay eventos vendidos para mostrar en el top.
+      return (
+        <div
+          key={event.id}
+          className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm hover:shadow-md transition"
+        >
+          {/* Imagen */}
+          {event.imageUrl ? (
+            <img
+              src={event.imageUrl}
+              alt={event.name}
+              className="h-48 w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-48 items-center justify-center bg-blue-50 text-sm text-blue-900">
+              Sin imagen
             </div>
           )}
+
+          {/* Contenido */}
+          <div className="p-5">
+            {/* Ranking */}
+            <div className="mb-3 flex items-center justify-between">
+              <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-bold text-blue-950">
+                #{index + 1}
+              </span>
+
+              <span className="text-xs font-semibold text-gray-500">
+                {event.soldCount} vendidas
+              </span>
+            </div>
+
+            {/* Nombre */}
+            <h3 className="text-lg font-bold text-blue-950">
+              {event.name}
+            </h3>
+
+            {/* Descripción */}
+            <p className="mt-2 line-clamp-2 text-sm text-gray-600">
+              {event.description}
+            </p>
+
+            {/* Fecha */}
+            <p className="mt-3 text-sm text-gray-500">
+              {new Date(event.date).toLocaleString("es-CO")}
+            </p>
+
+            {/* Precio */}
+            <p className="mt-2 text-base font-semibold text-blue-900">
+              {minPrice !== null
+                ? `Desde ${formatCop(minPrice)}`
+                : "Precio por definir"}
+            </p>
+
+            {/* Botón */}
+            <button
+              onClick={() => router.push(`/event-detail?eventId=${event.id}`)}
+              className="mt-4 w-full rounded-full bg-blue-950 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
+            >
+              Ver evento
+            </button>
+          </div>
         </div>
-      </section>
+      );
+    })}
+
+    {/* 🔥 Estado vacío */}
+    {!topSold.length && (
+      <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-600 md:col-span-3">
+        Aún no hay eventos vendidos para mostrar.
+      </div>
+    )}
+  </div>
+</section>
 
       <section className="mb-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-4">

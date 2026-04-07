@@ -24,10 +24,13 @@ let EventsController = class EventsController {
     constructor(service) {
         this.service = service;
     }
+    getTopSoldPublicEvents() {
+        return this.service.getTopSoldPublicEvents();
+    }
     async findPublicOne(id) {
         const event = await this.service.get(id);
         if (!event || !event.isActive) {
-            throw new common_1.NotFoundException('Evento no encontrado o inactivo');
+            throw new common_1.NotFoundException("Evento no encontrado o inactivo");
         }
         return event;
     }
@@ -61,8 +64,14 @@ let EventsController = class EventsController {
 };
 exports.EventsController = EventsController;
 __decorate([
-    (0, common_1.Get)('public/:id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Get)("public/top-sold"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], EventsController.prototype, "getTopSoldPublicEvents", null);
+__decorate([
+    (0, common_1.Get)("public/:id"),
+    __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)

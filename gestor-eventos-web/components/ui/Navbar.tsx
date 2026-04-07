@@ -18,12 +18,6 @@ export default function Navbar() {
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white shadow">
             <Image
               src="/favicon.ico"
-        
-        {/* 🔥 Logo + Nombre */}
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white shadow">
-            <Image
-              src="/favicon.ico" // 👈 tu logo
               alt="Que Boleta"
               width={40}
               height={40}
@@ -49,6 +43,24 @@ export default function Navbar() {
           >
             Eventos
           </Link>
+
+          {!token && (
+            <div className="flex gap-2">
+              <Link
+                href="/login"
+                className="rounded-full border border-white px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Iniciar sesión
+              </Link>
+
+              <Link
+                href="/register"
+                className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-blue-900 shadow transition hover:bg-yellow-300"
+              >
+                Registrarse
+              </Link>
+            </div>
+          )}
 
           {token && isAdmin && (
             <>
@@ -82,54 +94,11 @@ export default function Navbar() {
             </>
           )}
 
-          <div className="flex flex-col leading-none">
-            <span className="text-2xl font-extrabold text-white">
-              Que Boleta
-            </span>
-            <span className="text-xs text-yellow-300">
-              Vive los mejores eventos
-            </span>
-          </div>
-        </Link>
-
-        {/* 🔥 Navegación */}
-        <nav className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="rounded-full px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-          >
-            Eventos
-          </Link>
-
-          {!token && (
-            <div className="flex gap-2">
-              <Link
-                href="/login"
-                className="rounded-full border border-white px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                className="rounded-full border border-white px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-              >
-                Iniciar sesión
-              </Link>
-
-              <Link
-                href="/register"
-                className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-blue-900 shadow transition hover:bg-yellow-300"
-                className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-blue-900 shadow hover:bg-yellow-300"
-              >
-                Registrarse
-              </Link>
-            </div>
-          )}
-
           {token && (
             <div className="relative">
               <button
                 onClick={() => setOpen((prev) => !prev)}
                 className="flex items-center gap-2 rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-              {/* Botón usuario */}
-              <button
-                onClick={() => setOpen((prev) => !prev)}
-                className="flex items-center gap-2 rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-400 font-bold text-blue-900">
                   {(user?.name || "U").charAt(0).toUpperCase()}
@@ -150,17 +119,6 @@ export default function Navbar() {
 
               {open && (
                 <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-                <span className="max-w-[120px] truncate">
-                  {user?.name || "Usuario"}
-                </span>
-                <span>▾</span>
-              </button>
-
-              {/* 🔥 Dropdown */}
-              {open && (
-                <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-                  
-                  {/* Header */}
                   <div className="bg-blue-950 px-4 py-4 text-white">
                     <p className="text-xs text-yellow-300">Bienvenido</p>
                     <p className="truncate text-base font-bold">
@@ -177,13 +135,6 @@ export default function Navbar() {
                     <Link
                       href="/me"
                       className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
-                  </div>
-
-                  {/* Opciones */}
-                  <div className="py-2">
-                    <Link
-                      href="/me"
-                      className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-900"
                       onClick={() => setOpen(false)}
                     >
                       Mi cuenta
@@ -192,7 +143,6 @@ export default function Navbar() {
                     <Link
                       href="/me/favorites"
                       className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
-                      className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-900"
                       onClick={() => setOpen(false)}
                     >
                       ⭐ Mis favoritos
@@ -201,7 +151,6 @@ export default function Navbar() {
                     <Link
                       href="/me/purchases"
                       className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
-                      className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-900"
                       onClick={() => setOpen(false)}
                     >
                       🎟️ Mis compras
@@ -253,7 +202,6 @@ export default function Navbar() {
                         setOpen(false);
                       }}
                       className="block w-full px-4 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                      className="block w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
                     >
                       Cerrar sesión
                     </button>
