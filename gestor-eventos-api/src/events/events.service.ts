@@ -30,7 +30,6 @@ export class EventsService {
   constructor(private prisma: PrismaService) {}
 
   async listPublic(q: PublicQuery) {
-    // page/pageSize seguros (evita NaN, 0, negativos)
     const page = Math.max(1, safeInt(q.page, 1));
     const pageSize = Math.min(50, Math.max(1, safeInt(q.pageSize, 6)));
     const skip = (page - 1) * pageSize;
@@ -88,7 +87,6 @@ export class EventsService {
         items: items.map((e) => ({ ...e, interestCount: e._count.interests })),
       };
     } catch (err) {
-      // Esto fuerza a que veas el error real en consola
       console.error("❌ Error en listPublic (/events/public):", err);
       throw err;
     }

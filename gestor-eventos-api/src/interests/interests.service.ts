@@ -25,7 +25,6 @@ export class InterestsService {
     return { interested: true, interestCount: count };
   }
 
-  // ✅ USER: Mis favoritos (eventos que me interesan)
   async myFavorites(userId: string) {
     const rows = await this.prisma.interest.findMany({
       where: { userId },
@@ -40,7 +39,6 @@ export class InterestsService {
       },
     });
 
-    // Devuelve lista de eventos con info extra
     return rows.map((r) => ({
       eventId: r.event.id,
       name: r.event.name,
@@ -54,7 +52,6 @@ export class InterestsService {
     }));
   }
 
-  // ✅ ADMIN: Eventos + usuarios interesados por evento
   async reportByEvent() {
     const events = await this.prisma.event.findMany({
       orderBy: { interests: { _count: "desc" } },

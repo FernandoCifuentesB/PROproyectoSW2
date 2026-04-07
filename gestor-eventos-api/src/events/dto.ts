@@ -20,8 +20,7 @@ export class CreateEventDto {
   @IsString()
   imageUrl?: string;
 
-  @IsUUID()
-  categoryId!: string;
+  @IsUUID() categoryId!: string;
 }
 
 export class UpdateEventDto {

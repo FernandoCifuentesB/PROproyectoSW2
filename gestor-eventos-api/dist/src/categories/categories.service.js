@@ -34,7 +34,7 @@ let CategoriesService = class CategoriesService {
     }
     async update(id, dto) {
         await this.get(id);
-        if (dto.isActive === false) {
+        if (!dto.isActive) {
             const activeEvents = await this.prisma.event.count({
                 where: { categoryId: id, isActive: true },
             });
