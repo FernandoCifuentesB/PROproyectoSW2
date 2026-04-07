@@ -28,6 +28,9 @@ let TicketPurchasesController = class TicketPurchasesController {
     findMine(req) {
         return this.ticketPurchasesService.findMine(req.user.userId);
     }
+    findOne(id, req) {
+        return this.ticketPurchasesService.findOne(id, req.user.userId);
+    }
 };
 exports.TicketPurchasesController = TicketPurchasesController;
 __decorate([
@@ -45,6 +48,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], TicketPurchasesController.prototype, "findMine", null);
+__decorate([
+    (0, common_1.Get)(":id"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], TicketPurchasesController.prototype, "findOne", null);
 exports.TicketPurchasesController = TicketPurchasesController = __decorate([
     (0, common_1.Controller)("ticket-purchases"),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt")),
