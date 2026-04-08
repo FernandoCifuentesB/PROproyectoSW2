@@ -1,12 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import EventTicketManager from "@/components/admin/EventTicketManager";
 import { apiGet } from "@/lib/api";
 import { EventItem } from "@/lib/types";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminEventTicketsPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-6xl p-6">Cargando...</main>}>
+      <AdminEventTicketsContent />
+    </Suspense>
+  );
+}
+
+function AdminEventTicketsContent() {
   const searchParams = useSearchParams();
   const eventId = searchParams.get("eventId") ?? "";
 
@@ -17,7 +33,7 @@ export default function AdminEventTicketsPage() {
   useEffect(() => {
     async function loadEvent() {
       if (!eventId) {
-        setMessage("No se recibió el id del evento");
+        setMessage("No se recibio el id del evento");
         setLoading(false);
         return;
       }
@@ -25,8 +41,8 @@ export default function AdminEventTicketsPage() {
       try {
         const data = await apiGet<EventItem>(`/events/${eventId}`);
         setEvent(data);
-      } catch (error: any) {
-        setMessage(error.message || "No fue posible cargar el evento");
+      } catch (error: unknown) {
+        setMessage(getErrorMessage(error, "No fue posible cargar el evento"));
       } finally {
         setLoading(false);
       }
@@ -42,7 +58,7 @@ export default function AdminEventTicketsPage() {
   if (!eventId) {
     return (
       <main className="mx-auto max-w-6xl p-6">
-        No se encontró el parámetro eventId.
+        No se encontro el parametro eventId.
       </main>
     );
   }

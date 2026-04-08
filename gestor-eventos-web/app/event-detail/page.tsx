@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -9,7 +9,23 @@ import { formatCop, getMinTicketPrice } from "@/lib/tickets";
 import { EventItem } from "@/lib/types";
 import Button from "@/components/ui/Button";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function EventDetailPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-6xl p-6">Cargando...</main>}>
+      <EventDetailContent />
+    </Suspense>
+  );
+}
+
+function EventDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const eventId = searchParams.get("eventId") ?? "";
@@ -24,15 +40,15 @@ export default function EventDetailPage() {
   useEffect(() => {
     async function loadEvent() {
       if (!eventId) {
-        setError("No se recibió el id del evento");
+        setError("No se recibio el id del evento");
         setLoading(false);
         return;
       }
       try {
         const data = await apiGet<EventItem>(`/events/public/${eventId}`);
         setEvent(data);
-      } catch (err: any) {
-        setError(err.message || "No fue posible cargar el evento");
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "No fue posible cargar el evento"));
       } finally {
         setLoading(false);
       }
@@ -116,7 +132,7 @@ export default function EventDetailPage() {
             {interestLoading
               ? "Actualizando..."
               : interested
-              ? "✓ Me interesa"
+              ? "Ya me interesa"
               : "Me interesa"}
           </Button>
         </div>

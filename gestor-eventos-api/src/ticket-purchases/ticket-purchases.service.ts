@@ -2,6 +2,11 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+} from '@nestjs/common';
+
+import { PrismaService } from '@/prisma/prisma.service';
+import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
+import { EventsService } from '@/events/events.service';
 } from "@nestjs/common";
 
 import { PrismaService } from "@/prisma/prisma.service";
@@ -22,7 +27,7 @@ export class TicketPurchasesService {
       });
 
       if (!user) {
-        throw new NotFoundException("Usuario no encontrado");
+        throw new NotFoundException('Usuario no encontrado');
       }
 
       const eventTicket = await tx.eventTicket.findUnique({
@@ -34,43 +39,37 @@ export class TicketPurchasesService {
       });
 
       if (!eventTicket) {
-        throw new NotFoundException(
-          "Tipo de entrada del evento no encontrado",
-        );
+        throw new NotFoundException('Tipo de entrada del evento no encontrado');
       }
 
       if (!eventTicket.event) {
-        throw new NotFoundException("Evento no encontrado");
+        throw new NotFoundException('Evento no encontrado');
       }
 
       if (!eventTicket.event.isActive) {
         throw new BadRequestException(
-          "No se pueden comprar entradas para un evento inactivo",
+          'No se pueden comprar entradas para un evento inactivo',
         );
       }
 
       if (!eventTicket.isActive) {
         throw new BadRequestException(
-          "Este tipo de entrada no está disponible",
+          'Este tipo de entrada no está disponible',
         );
       }
 
       if (!eventTicket.ticketType.isActive) {
-        throw new BadRequestException(
-          "El tipo de entrada está inactivo",
-        );
+        throw new BadRequestException('El tipo de entrada está inactivo');
       }
 
       if (dto.quantity <= 0) {
-        throw new BadRequestException(
-          "La cantidad debe ser mayor a cero",
-        );
+        throw new BadRequestException('La cantidad debe ser mayor a cero');
       }
 
       const available = eventTicket.stock - eventTicket.sold;
 
       if (available <= 0) {
-        throw new BadRequestException("Las entradas están agotadas");
+        throw new BadRequestException('Las entradas están agotadas');
       }
 
       if (dto.quantity > available) {
@@ -96,7 +95,7 @@ export class TicketPurchasesService {
           quantity: dto.quantity,
           unitPrice: eventTicket.price,
           totalPrice: eventTicket.price * dto.quantity,
-          status: "CONFIRMED",
+          status: 'CONFIRMED',
         },
         include: {
           event: true,
@@ -120,8 +119,8 @@ export class TicketPurchasesService {
       return {
         message:
           remaining === 0
-            ? "Compra realizada. Este tipo de entrada quedó agotado"
-            : "Compra realizada correctamente",
+            ? 'Compra realizada. Este tipo de entrada quedó agotado'
+            : 'Compra realizada correctamente',
         purchase,
       };
     });
@@ -137,7 +136,7 @@ export class TicketPurchasesService {
     });
 
     if (!user) {
-      throw new NotFoundException("Usuario no encontrado");
+      throw new NotFoundException('Usuario no encontrado');
     }
 
     return this.prisma.ticketPurchase.findMany({
@@ -151,7 +150,7 @@ export class TicketPurchasesService {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     });
   }
@@ -173,9 +172,39 @@ export class TicketPurchasesService {
     });
 
     if (!purchase) {
-      throw new NotFoundException("Compra no encontrada");
+      throw new NotFoundException('Compra no encontrada');
     }
 
     return purchase;
+  }
+
+  async getAdminSummary() {
+    const [revenue, registeredUsers, events] = await Promise.all([
+      this.prisma.ticketPurchase.aggregate({
+        where: { status: 'CONFIRMED' },
+        _sum: { totalPrice: true },
+      }),
+      this.prisma.user.count({
+        where: { role: 'USER' },
+      }),
+      this.prisma.event.findMany({
+        select: {
+          id: true,
+          date: true,
+          isActive: true,
+        },
+      }),
+    ]);
+
+    const now = new Date();
+
+    return {
+      totalRevenue: revenue._sum.totalPrice ?? 0,
+      activeEvents: events.filter(
+        (event) => event.isActive && new Date(event.date) >= now,
+      ).length,
+      pastEvents: events.filter((event) => new Date(event.date) < now).length,
+      registeredUsers,
+    };
   }
 }

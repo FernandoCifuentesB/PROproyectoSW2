@@ -1,3 +1,6 @@
+import { PrismaService } from '@/prisma/prisma.service';
+import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
+import { EventsService } from '@/events/events.service';
 import { PrismaService } from "@/prisma/prisma.service";
 import { CreateTicketPurchaseDto } from "./dto/create-ticket-purchase.dto";
 import { EventsService } from "@/events/events.service";
@@ -147,5 +150,11 @@ export declare class TicketPurchasesService {
         unitPrice: number;
         totalPrice: number;
         status: import("@prisma/client").$Enums.PurchaseStatus;
+    }>;
+    getAdminSummary(): Promise<{
+        totalRevenue: number;
+        activeEvents: number;
+        pastEvents: number;
+        registeredUsers: number;
     }>;
 }

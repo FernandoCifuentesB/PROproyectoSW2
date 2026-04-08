@@ -44,6 +44,16 @@ export default function Navbar() {
             Eventos
           </Link>
 
+          {token && isAdmin && (
+            <>
+              <Link
+                href="/admin/ganancias"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Ganancias
+              </Link>
+
+              <Link
           {!token && (
             <div className="flex gap-2">
               <Link
@@ -83,6 +93,33 @@ export default function Navbar() {
                 className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
               >
                 Top
+              </Link>
+
+              <Link
+                href="/admin/users"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Usuarios
+              </Link>
+            </>
+          )}
+
+          {!token && (
+            <div className="flex gap-2">
+              <Link
+                href="/login"
+                className="rounded-full border border-white px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Iniciar sesión
+              </Link>
+
+              <Link
+                href="/register"
+                className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-blue-900 shadow transition hover:bg-yellow-300"
+              >
+                Registrarse
+              </Link>
+            </div>
               </Link>
 
               <Link
@@ -145,6 +182,15 @@ export default function Navbar() {
                       className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
                       onClick={() => setOpen(false)}
                     >
+                    >
+                      Mi cuenta
+                    </Link>
+
+                    <Link
+                      href="/me/favorites"
+                      className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
+                      onClick={() => setOpen(false)}
+                    >
                       ⭐ Mis favoritos
                     </Link>
 
@@ -159,6 +205,14 @@ export default function Navbar() {
                     {isAdmin && (
                       <>
                         <div className="my-2 border-t border-gray-200" />
+
+                        <Link
+                          href="/admin/ganancias"
+                          className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
+                          onClick={() => setOpen(false)}
+                        >
+                          Ganancias
+                        </Link>
 
                         <Link
                           href="/admin/events"

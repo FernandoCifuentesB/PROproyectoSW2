@@ -90,3 +90,4 @@ export async function getMyTicketPurchases() {
 export async function getTicketPurchaseById(id: string) {
   return apiGet<TicketPurchase>(`/ticket-purchases/${id}`);
 }
+}

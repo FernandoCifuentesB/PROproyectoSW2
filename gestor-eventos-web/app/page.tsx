@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { apiGet, apiPost } from "@/lib/api";
@@ -22,6 +21,10 @@ type TopSoldEvent = EventItem & {
 };
 
 export default function HomePage() {
+  return <PublicHomePage />;
+}
+
+function PublicHomePage() {
   const { token } = useAuth();
   const router = useRouter();
 
@@ -119,6 +122,7 @@ export default function HomePage() {
           Que Boleta
         </p>
         <h1 className="text-3xl font-bold md:text-4xl">
+          Encuentra tu proximo plan
           Encuentra tu próximo plan
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-blue-100 md:text-base">
@@ -128,6 +132,85 @@ export default function HomePage() {
       </section>
 
       <section className="mb-10">
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-blue-950">
+              Top 3 mas vendidos
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Se muestran unicamente eventos activos.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-3">
+          {topSold.map((event, index) => {
+            const minPrice = getMinTicketPrice(event);
+            return (
+              <Card
+                key={event.id}
+                className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm"
+              >
+                {event.imageUrl ? (
+                  <img
+                    src={event.imageUrl}
+                    alt={event.name}
+                    className="h-48 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-48 items-center justify-center bg-blue-50 text-sm text-blue-900">
+                    Sin imagen
+                  </div>
+                )}
+
+                <div className="p-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-bold text-blue-950">
+                      #{index + 1} mas vendido
+                    </span>
+                    <span className="text-xs font-semibold text-gray-500">
+                      {event.soldCount} entradas
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-blue-950">
+                    {event.name}
+                  </h3>
+
+                  <p className="mt-2 line-clamp-2 text-sm text-gray-600">
+                    {event.description}
+                  </p>
+
+                  <p className="mt-3 text-sm text-gray-500">
+                    {new Date(event.date).toLocaleString("es-CO")}
+                  </p>
+
+                  <p className="mt-2 text-base font-semibold text-blue-900">
+                    {minPrice !== null
+                      ? `Desde ${formatCop(minPrice)}`
+                      : "Precio por definir"}
+                  </p>
+
+                  <div className="mt-4">
+                    <Button
+                      onClick={() => handleBuy(event.id)}
+                      className="w-full bg-blue-950 text-white hover:bg-blue-900"
+                    >
+                      Ver evento
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+
+          {!topSold.length && (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-600 md:col-span-3">
+              Aun no hay eventos vendidos para mostrar en el top.
+            </div>
+          )}
+        </div>
+      </section>
   {/* 🔥 TÍTULO */}
   <div className="mb-8 text-center">
     <h2 className="text-3xl font-extrabold text-blue-950">
@@ -219,6 +302,7 @@ export default function HomePage() {
         <div className="mb-4">
           <h2 className="text-2xl font-bold text-blue-950">Filtrar eventos</h2>
           <p className="mt-1 text-sm text-gray-600">
+            Filtra por categoria o nombre y revisa el detalle de cada evento con
             Filtra por categoría o nombre y revisa el detalle de cada evento con
             sus entradas disponibles.
           </p>
@@ -226,6 +310,7 @@ export default function HomePage() {
 
         <div className="grid gap-4 md:grid-cols-[1fr_280px_auto]">
           <Input
+            placeholder="Buscar por nombre o descripcion"
             placeholder="Buscar por nombre o descripción"
             value={search}
             onChange={(e) => {
@@ -241,7 +326,7 @@ export default function HomePage() {
               setPage(1);
             }}
           >
-            <option value="">Todas las categorías</option>
+            <option value="">Todas las categorias</option>
             {cats
               .filter((c) => c.isActive)
               .map((c) => (
@@ -289,6 +374,7 @@ export default function HomePage() {
               <div className="p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-900">
+                    {event.category?.name || "Sin categoria"}
                     {event.category?.name || "Sin categoría"}
                   </span>
 
@@ -333,6 +419,8 @@ export default function HomePage() {
                     {togglingId === event.id
                       ? "Actualizando..."
                       : isInterested
+                        ? "Ya me interesa"
+                        : "Me interesa"}
                       ? "✓ Me interesa"
                       : "Me interesa"}
                   </Button>
@@ -355,6 +443,7 @@ export default function HomePage() {
 
       <section className="mt-8 flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
         <p className="text-sm text-gray-600">
+          Pagina {page} de {totalPages}
           Página {page} de {totalPages}
         </p>
 
@@ -364,7 +453,7 @@ export default function HomePage() {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            ←
+            Anterior
           </Button>
 
           <Button
@@ -372,7 +461,7 @@ export default function HomePage() {
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
-            →
+            Siguiente
           </Button>
         </div>
       </section>

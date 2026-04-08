@@ -26,6 +26,7 @@ let TicketPurchasesService = class TicketPurchasesService {
                 where: { id: userId },
             });
             if (!user) {
+                throw new common_1.NotFoundException('Usuario no encontrado');
                 throw new common_1.NotFoundException("Usuario no encontrado");
             }
             const eventTicket = await tx.eventTicket.findUnique({
@@ -41,6 +42,9 @@ let TicketPurchasesService = class TicketPurchasesService {
             if (!eventTicket.event) {
                 throw new common_1.NotFoundException("Evento no encontrado");
             }
+            if (!eventTicket.event) {
+                throw new common_1.NotFoundException('Evento no encontrado');
+            }
             if (!eventTicket.event.isActive) {
                 throw new common_1.BadRequestException("No se pueden comprar entradas para un evento inactivo");
             }
@@ -48,6 +52,10 @@ let TicketPurchasesService = class TicketPurchasesService {
                 throw new common_1.BadRequestException("Este tipo de entrada no está disponible");
             }
             if (!eventTicket.ticketType.isActive) {
+                throw new common_1.BadRequestException('El tipo de entrada está inactivo');
+            }
+            if (dto.quantity <= 0) {
+                throw new common_1.BadRequestException('La cantidad debe ser mayor a cero');
                 throw new common_1.BadRequestException("El tipo de entrada está inactivo");
             }
             if (dto.quantity <= 0) {
@@ -97,6 +105,8 @@ let TicketPurchasesService = class TicketPurchasesService {
             const remaining = available - dto.quantity;
             return {
                 message: remaining === 0
+                    ? 'Compra realizada. Este tipo de entrada quedó agotado'
+                    : 'Compra realizada correctamente',
                     ? "Compra realizada. Este tipo de entrada quedó agotado"
                     : "Compra realizada correctamente",
                 purchase,
@@ -110,6 +120,7 @@ let TicketPurchasesService = class TicketPurchasesService {
             where: { id: userId },
         });
         if (!user) {
+            throw new common_1.NotFoundException('Usuario no encontrado');
             throw new common_1.NotFoundException("Usuario no encontrado");
         }
         return this.prisma.ticketPurchase.findMany({
@@ -146,6 +157,51 @@ let TicketPurchasesService = class TicketPurchasesService {
             throw new common_1.NotFoundException("Compra no encontrada");
         }
         return purchase;
+    }
+    async findOne(id, userId) {
+        const purchase = await this.prisma.ticketPurchase.findFirst({
+            where: {
+                id,
+                userId,
+            },
+            include: {
+                event: true,
+                eventTicket: {
+                    include: {
+                        ticketType: true,
+                    },
+                },
+            },
+        });
+        if (!purchase) {
+            throw new common_1.NotFoundException('Compra no encontrada');
+        }
+        return purchase;
+    }
+    async getAdminSummary() {
+        const [revenue, registeredUsers, events] = await Promise.all([
+            this.prisma.ticketPurchase.aggregate({
+                where: { status: 'CONFIRMED' },
+                _sum: { totalPrice: true },
+            }),
+            this.prisma.user.count({
+                where: { role: 'USER' },
+            }),
+            this.prisma.event.findMany({
+                select: {
+                    id: true,
+                    date: true,
+                    isActive: true,
+                },
+            }),
+        ]);
+        const now = new Date();
+        return {
+            totalRevenue: revenue._sum.totalPrice ?? 0,
+            activeEvents: events.filter((event) => event.isActive && new Date(event.date) >= now).length,
+            pastEvents: events.filter((event) => new Date(event.date) < now).length,
+            registeredUsers,
+        };
     }
 };
 exports.TicketPurchasesService = TicketPurchasesService;
