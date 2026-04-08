@@ -68,6 +68,13 @@ export default function Navbar() {
               </Link>
 
               <Link
+                href="/admin/reports/event-sales"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Reporte de entradas
+              </Link>
+
+              <Link
                 href="/reports/top"
                 className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
               >
@@ -189,6 +196,14 @@ export default function Navbar() {
                           onClick={() => setOpen(false)}
                         >
                           Admin Categorias
+                        </Link>
+
+                        <Link
+                          href="/admin/reports/event-sales"
+                          className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
+                          onClick={() => setOpen(false)}
+                        >
+                          Reporte de entradas
                         </Link>
 
                         <Link
