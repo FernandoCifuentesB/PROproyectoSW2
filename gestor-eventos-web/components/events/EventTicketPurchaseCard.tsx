@@ -61,11 +61,13 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       setQuantity(1);
 
       await loadTickets();
-
-      // 🔥 REDIRECCIÓN A LA BOLETA
       router.push(`/me/purchases/${result.purchase.id}`);
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible completar la compra");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No fue posible completar la compra",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -83,7 +85,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
       {canBuy && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {/* Selección de tipo de ticket */}
           <div>
             <label className="block text-sm font-medium text-neutral-700">
               Tipo de entrada
@@ -98,15 +99,13 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                 .filter((t) => t.isActive)
                 .map((ticket) => (
                   <option key={ticket.id} value={ticket.id}>
-                    {ticket.ticketType?.name} -{" "}
-                    {formatCop(ticket.price)} (Disponibles:{" "}
-                    {ticket.stock - ticket.sold})
+                    {ticket.ticketType?.name} - {formatCop(ticket.price)}{" "}
+                    (Disponibles: {ticket.stock - ticket.sold})
                   </option>
                 ))}
             </select>
           </div>
 
-          {/* Cantidad */}
           <div>
             <label className="block text-sm font-medium text-neutral-700">
               Cantidad
@@ -120,7 +119,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
             />
           </div>
 
-          {/* Botón */}
           <button
             type="submit"
             disabled={submitting}
@@ -129,9 +127,8 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
             {submitting ? "Procesando..." : "Comprar"}
           </button>
 
-          {/* Mensaje */}
           {message && (
-            <p className="text-sm text-center text-neutral-600">{message}</p>
+            <p className="text-center text-sm text-neutral-600">{message}</p>
           )}
         </form>
       )}

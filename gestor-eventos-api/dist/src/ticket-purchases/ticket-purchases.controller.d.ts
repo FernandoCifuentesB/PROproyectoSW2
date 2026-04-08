@@ -11,14 +11,12 @@ export declare class TicketPurchasesController {
     private readonly ticketPurchasesService;
     constructor(ticketPurchasesService: TicketPurchasesService);
     create(req: AuthRequest, dto: CreateTicketPurchaseDto): Promise<{
-        eventTicket: {
-            ticketType: {
+        message: string;
+        purchase: {
+            user: {
                 id: string;
                 name: string;
-                isActive: boolean;
-                createdAt: Date;
-                updatedAt: Date;
-                description: string | null;
+                email: string;
             };
             event: {
                 id: string;
@@ -32,28 +30,50 @@ export declare class TicketPurchasesController {
                 imageUrl: string | null;
                 categoryId: string;
             };
+            eventTicket: {
+                ticketType: {
+                    id: string;
+                    name: string;
+                    isActive: boolean;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    description: string | null;
+                };
+                event: {
+                    id: string;
+                    name: string;
+                    isActive: boolean;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    description: string;
+                    date: Date;
+                    price: number;
+                    imageUrl: string | null;
+                    categoryId: string;
+                };
+            } & {
+                id: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                price: number;
+                eventId: string;
+                ticketTypeId: string;
+                stock: number;
+                sold: number;
+            };
         } & {
             id: string;
-            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
-            price: number;
+            userId: string;
             eventId: string;
-            ticketTypeId: string;
-            stock: number;
-            sold: number;
+            eventTicketId: string;
+            quantity: number;
+            unitPrice: number;
+            totalPrice: number;
+            status: import("@prisma/client").$Enums.PurchaseStatus;
         };
-    } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        eventId: string;
-        eventTicketId: string;
-        quantity: number;
-        unitPrice: number;
-        totalPrice: number;
-        status: import("@prisma/client").$Enums.PurchaseStatus;
     }>;
     getEventReport(eventId: string): Promise<{
         event: {
@@ -81,6 +101,23 @@ export declare class TicketPurchasesController {
         totalRevenue: number;
     }>;
     findMine(req: AuthRequest): Promise<({
+        user: {
+            id: string;
+            name: string;
+            email: string;
+        };
+        event: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string;
+            date: Date;
+            price: number;
+            imageUrl: string | null;
+            categoryId: string;
+        };
         eventTicket: {
             ticketType: {
                 id: string;
@@ -126,6 +163,23 @@ export declare class TicketPurchasesController {
         status: import("@prisma/client").$Enums.PurchaseStatus;
     })[]>;
     findOne(id: string, req: AuthRequest): Promise<{
+        user: {
+            id: string;
+            name: string;
+            email: string;
+        };
+        event: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string;
+            date: Date;
+            price: number;
+            imageUrl: string | null;
+            categoryId: string;
+        };
         eventTicket: {
             ticketType: {
                 id: string;

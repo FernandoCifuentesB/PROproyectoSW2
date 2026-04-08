@@ -7,6 +7,23 @@ import { PurchaseStatus } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
 
+const ticketPurchaseInclude = {
+  event: true,
+  eventTicket: {
+    include: {
+      event: true,
+      ticketType: true,
+    },
+  },
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+};
+
 @Injectable()
 export class TicketPurchasesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -50,16 +67,9 @@ export class TicketPurchasesService {
           quantity,
           unitPrice,
           totalPrice,
-          status: PurchaseStatus.PENDING,
+          status: PurchaseStatus.CONFIRMED,
         },
-        include: {
-          eventTicket: {
-            include: {
-              event: true,
-              ticketType: true,
-            },
-          },
-        },
+        include: ticketPurchaseInclude,
       });
 
       await tx.eventTicket.update({
@@ -74,20 +84,16 @@ export class TicketPurchasesService {
       return createdPurchase;
     });
 
-    return purchase;
+    return {
+      message: 'Compra realizada correctamente',
+      purchase,
+    };
   }
 
   async findMine(userId: string) {
     return this.prisma.ticketPurchase.findMany({
       where: { userId },
-      include: {
-        eventTicket: {
-          include: {
-            event: true,
-            ticketType: true,
-          },
-        },
-      },
+      include: ticketPurchaseInclude,
       orderBy: {
         createdAt: 'desc',
       },
@@ -100,14 +106,7 @@ export class TicketPurchasesService {
         id,
         userId,
       },
-      include: {
-        eventTicket: {
-          include: {
-            event: true,
-            ticketType: true,
-          },
-        },
-      },
+      include: ticketPurchaseInclude,
     });
 
     if (!purchase) {

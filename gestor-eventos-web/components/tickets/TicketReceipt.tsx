@@ -32,8 +32,6 @@ export default function TicketReceipt({
     status: purchase.status,
   });
 
-  
-
   return (
     <article
       className={`rounded-2xl border border-gray-200 bg-white p-6 shadow-sm print:break-inside-avoid print:shadow-none ${
@@ -54,7 +52,8 @@ export default function TicketReceipt({
               <span className="font-semibold">Compra:</span> {purchase.id}
             </p>
             <p>
-              <span className="font-semibold">Tipo de entrada:</span> {ticketType}
+              <span className="font-semibold">Tipo de entrada:</span>{" "}
+              {ticketType}
             </p>
             <p>
               <span className="font-semibold">Cantidad:</span> {purchase.quantity}
@@ -71,7 +70,8 @@ export default function TicketReceipt({
               <span className="font-semibold">Estado:</span> {purchase.status}
             </p>
             <p>
-              <span className="font-semibold">Fecha del evento:</span> {eventDate}
+              <span className="font-semibold">Fecha del evento:</span>{" "}
+              {eventDate}
             </p>
             <p>
               <span className="font-semibold">Comprador:</span> {buyerName}

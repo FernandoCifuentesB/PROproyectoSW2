@@ -27,6 +27,11 @@ export type CreatePurchasePayload = {
   quantity: number;
 };
 
+export type CreateTicketPurchaseResponse = {
+  message: string;
+  purchase: TicketPurchase;
+};
+
 export async function getTicketTypes() {
   return apiGet<TicketType[]>("/ticket-types");
 }
@@ -80,10 +85,22 @@ export async function deleteEventTicket(
 }
 
 export async function createTicketPurchase(body: CreatePurchasePayload) {
-  return apiPost<{ message: string; purchase: TicketPurchase }>(
+  const data = await apiPost<CreateTicketPurchaseResponse | TicketPurchase>(
     "/ticket-purchases",
     body,
   );
+
+  if ("purchase" in data) {
+    return {
+      message: data.message || "Compra realizada correctamente",
+      purchase: data.purchase,
+    };
+  }
+
+  return {
+    message: "Compra realizada correctamente",
+    purchase: data,
+  };
 }
 
 export async function getMyTicketPurchases() {

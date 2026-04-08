@@ -207,55 +207,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mb-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold text-blue-950">Filtrar eventos</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Filtra por categoria o nombre y revisa el detalle de cada evento con
-            sus entradas disponibles.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-[1fr_280px_auto]">
-          <Input
-            placeholder="Buscar por nombre o descripcion"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-
-          <Select
-            value={categoryId}
-            onChange={(e) => {
-              setCategoryId(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">Todas las categorias</option>
-            {cats
-              .filter((c) => c.isActive)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </Select>
-
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSearch("");
-              setCategoryId("");
-              setPage(1);
-            }}
-          >
-            Limpiar filtros
-          </Button>
-        </div>
-      </section>
-
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {data?.items?.map((event) => {
           const minPrice = getMinTicketPrice(event);

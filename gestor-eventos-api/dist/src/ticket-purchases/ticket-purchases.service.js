@@ -13,6 +13,22 @@ exports.TicketPurchasesService = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
+const ticketPurchaseInclude = {
+    event: true,
+    eventTicket: {
+        include: {
+            event: true,
+            ticketType: true,
+        },
+    },
+    user: {
+        select: {
+            id: true,
+            name: true,
+            email: true,
+        },
+    },
+};
 let TicketPurchasesService = class TicketPurchasesService {
     prisma;
     constructor(prisma) {
@@ -48,16 +64,9 @@ let TicketPurchasesService = class TicketPurchasesService {
                     quantity,
                     unitPrice,
                     totalPrice,
-                    status: client_1.PurchaseStatus.PENDING,
+                    status: client_1.PurchaseStatus.CONFIRMED,
                 },
-                include: {
-                    eventTicket: {
-                        include: {
-                            event: true,
-                            ticketType: true,
-                        },
-                    },
-                },
+                include: ticketPurchaseInclude,
             });
             await tx.eventTicket.update({
                 where: { id: eventTicketId },
@@ -69,19 +78,15 @@ let TicketPurchasesService = class TicketPurchasesService {
             });
             return createdPurchase;
         });
-        return purchase;
+        return {
+            message: 'Compra realizada correctamente',
+            purchase,
+        };
     }
     async findMine(userId) {
         return this.prisma.ticketPurchase.findMany({
             where: { userId },
-            include: {
-                eventTicket: {
-                    include: {
-                        event: true,
-                        ticketType: true,
-                    },
-                },
-            },
+            include: ticketPurchaseInclude,
             orderBy: {
                 createdAt: 'desc',
             },
@@ -93,14 +98,7 @@ let TicketPurchasesService = class TicketPurchasesService {
                 id,
                 userId,
             },
-            include: {
-                eventTicket: {
-                    include: {
-                        event: true,
-                        ticketType: true,
-                    },
-                },
-            },
+            include: ticketPurchaseInclude,
         });
         if (!purchase) {
             throw new common_1.NotFoundException('Compra no encontrada');

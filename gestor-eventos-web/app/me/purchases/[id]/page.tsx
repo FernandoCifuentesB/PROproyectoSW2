@@ -18,8 +18,12 @@ export default function PurchaseReceiptPage() {
       try {
         const data = await getTicketPurchaseById(params.id);
         setItem(data);
-      } catch (error: any) {
-        setMessage(error.message || "No fue posible cargar la boleta");
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "No fue posible cargar la boleta",
+        );
       } finally {
         setLoading(false);
       }
