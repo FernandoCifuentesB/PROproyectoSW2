@@ -109,6 +109,7 @@ export default function EventCard({
         </div>
 
         <div className="mt-3 flex flex-col gap-2">
+          
           <Button
             onClick={toggleInterest}
             disabled={loading}
