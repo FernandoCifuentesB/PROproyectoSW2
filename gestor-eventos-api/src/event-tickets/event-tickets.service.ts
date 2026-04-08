@@ -142,7 +142,7 @@ export class EventTicketsService {
     }
 
     return this.prisma.eventTicket.delete({
-     hola
+      where: { id: eventTicketId },
     });
   }
 
