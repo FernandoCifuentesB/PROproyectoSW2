@@ -5,138 +5,138 @@ export declare class TicketPurchasesService {
     constructor(prisma: PrismaService);
     create(userId: string, dto: CreateTicketPurchaseDto): Promise<{
         eventTicket: {
-            event: {
+            ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                price: number;
-                isActive: boolean;
+                description: string | null;
+            };
+            event: {
+                id: string;
                 name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
                 description: string;
                 date: Date;
+                price: number;
                 imageUrl: string | null;
                 categoryId: string;
             };
-            ticketType: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                isActive: boolean;
-                name: string;
-                description: string | null;
-            };
         } & {
             id: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            price: number;
             eventId: string;
             ticketTypeId: string;
-            price: number;
             stock: number;
             sold: number;
-            isActive: boolean;
         };
     } & {
         id: string;
-        quantity: number;
-        unitPrice: number;
-        totalPrice: number;
-        status: import("@prisma/client").$Enums.PurchaseStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
         eventId: string;
         eventTicketId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        status: import("@prisma/client").$Enums.PurchaseStatus;
     }>;
     findMine(userId: string): Promise<({
         eventTicket: {
-            event: {
+            ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                price: number;
-                isActive: boolean;
+                description: string | null;
+            };
+            event: {
+                id: string;
                 name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
                 description: string;
                 date: Date;
+                price: number;
                 imageUrl: string | null;
                 categoryId: string;
             };
-            ticketType: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                isActive: boolean;
-                name: string;
-                description: string | null;
-            };
         } & {
             id: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            price: number;
             eventId: string;
             ticketTypeId: string;
-            price: number;
             stock: number;
             sold: number;
-            isActive: boolean;
         };
     } & {
         id: string;
-        quantity: number;
-        unitPrice: number;
-        totalPrice: number;
-        status: import("@prisma/client").$Enums.PurchaseStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
         eventId: string;
         eventTicketId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        status: import("@prisma/client").$Enums.PurchaseStatus;
     })[]>;
     findOne(id: string, userId: string): Promise<{
         eventTicket: {
-            event: {
+            ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                price: number;
-                isActive: boolean;
+                description: string | null;
+            };
+            event: {
+                id: string;
                 name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
                 description: string;
                 date: Date;
+                price: number;
                 imageUrl: string | null;
                 categoryId: string;
             };
-            ticketType: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                isActive: boolean;
-                name: string;
-                description: string | null;
-            };
         } & {
             id: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            price: number;
             eventId: string;
             ticketTypeId: string;
-            price: number;
             stock: number;
             sold: number;
-            isActive: boolean;
         };
     } & {
         id: string;
-        quantity: number;
-        unitPrice: number;
-        totalPrice: number;
-        status: import("@prisma/client").$Enums.PurchaseStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
         eventId: string;
         eventTicketId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        status: import("@prisma/client").$Enums.PurchaseStatus;
     }>;
     getEventSalesReport(eventId: string): Promise<{
         event: {
