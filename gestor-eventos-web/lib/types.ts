@@ -48,49 +48,6 @@ export type Paged<T> = {
   items: T[];
 };
 
-export type Category = {
-  id: string;
-  name: string;
-  description?: string | null;
-  isActive: boolean;
-};
-
-export type TicketType = {
-  id: string;
-  name: string;
-  description?: string | null;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-export type EventTicket = {
-  id: string;
-  eventId: string;
-  ticketTypeId: string;
-  price: number;
-  stock: number;
-  sold: number;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  ticketType?: TicketType;
-};
-
-export type EventItem = {
-  id: string;
-  name: string;
-  description: string;
-  date: string;
-  price?: number | null;
-  imageUrl?: string | null;
-  isActive: boolean;
-  categoryId: string;
-  category?: Category;
-  interestCount?: number;
-  eventTickets?: EventTicket[];
-};
-
 export type TicketPurchase = {
   id: string;
   userId: string;
@@ -109,5 +66,4 @@ export type TicketPurchase = {
     name: string;
     email: string;
   };
-};
 };

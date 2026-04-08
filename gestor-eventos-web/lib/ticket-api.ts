@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "./api";
-import { TicketPurchase } from "./types";
+import { EventTicket, TicketPurchase, TicketType } from "./types";
 
 export type CreateTicketTypePayload = {
   name: string;
@@ -28,18 +28,18 @@ export type CreatePurchasePayload = {
 };
 
 export async function getTicketTypes() {
-  return apiGet("/ticket-types");
+  return apiGet<TicketType[]>("/ticket-types");
 }
 
 export async function createTicketType(body: CreateTicketTypePayload) {
-  return apiPost("/ticket-types", body);
+  return apiPost<TicketType>("/ticket-types", body);
 }
 
 export async function updateTicketType(
   id: string,
   body: UpdateTicketTypePayload,
 ) {
-  return apiPatch(`/ticket-types/${id}`, body);
+  return apiPatch<TicketType>(`/ticket-types/${id}`, body);
 }
 
 export async function deleteTicketType(id: string) {
@@ -47,18 +47,18 @@ export async function deleteTicketType(id: string) {
 }
 
 export async function getEventTicketsAdmin(eventId: string) {
-  return apiGet(`/events/${eventId}/tickets`);
+  return apiGet<EventTicket[]>(`/events/${eventId}/tickets`);
 }
 
 export async function getEventTicketsPublic(eventId: string) {
-  return apiGet(`/events/public/${eventId}/tickets`);
+  return apiGet<EventTicket[]>(`/events/public/${eventId}/tickets`);
 }
 
 export async function createEventTicket(
   eventId: string,
   body: CreateEventTicketPayload,
 ) {
-  return apiPost(`/events/${eventId}/tickets`, body);
+  return apiPost<EventTicket>(`/events/${eventId}/tickets`, body);
 }
 
 export async function updateEventTicket(
@@ -66,7 +66,10 @@ export async function updateEventTicket(
   eventTicketId: string,
   body: UpdateEventTicketPayload,
 ) {
-  return apiPatch(`/events/${eventId}/tickets/${eventTicketId}`, body);
+  return apiPatch<EventTicket>(
+    `/events/${eventId}/tickets/${eventTicketId}`,
+    body,
+  );
 }
 
 export async function deleteEventTicket(
@@ -89,5 +92,4 @@ export async function getMyTicketPurchases() {
 
 export async function getTicketPurchaseById(id: string) {
   return apiGet<TicketPurchase>(`/ticket-purchases/${id}`);
-}
 }
