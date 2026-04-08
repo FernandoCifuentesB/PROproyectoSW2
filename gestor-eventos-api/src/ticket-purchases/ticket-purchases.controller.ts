@@ -26,19 +26,23 @@ type AuthRequest = Request & {
 export class TicketPurchasesController {
   constructor(
     private readonly ticketPurchasesService: TicketPurchasesService,
-  ) { }
+  ) {}
 
+  // ✅ Crear compra
   @Post()
   create(@Req() req: AuthRequest, @Body() dto: CreateTicketPurchaseDto) {
     return this.ticketPurchasesService.create(req.user.userId, dto);
   }
+
+  // 🔥 NUEVO: Reporte por evento (ADMIN)
   @Get('report/event/:eventId')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles('ADMIN')
   getEventReport(@Param('eventId') eventId: string) {
     return this.ticketPurchasesService.getEventSalesReport(eventId);
   }
 
+  // ✅ Resumen admin (ya lo tenías)
   @Get('admin/summary')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
@@ -46,11 +50,13 @@ export class TicketPurchasesController {
     return this.ticketPurchasesService.getAdminSummary();
   }
 
+  // ✅ Mis compras
   @Get('me')
   findMine(@Req() req: AuthRequest) {
     return this.ticketPurchasesService.findMine(req.user.userId);
   }
 
+  // ✅ Obtener compra por id
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.ticketPurchasesService.findOne(id, req.user.userId);
