@@ -27,6 +27,9 @@ let TicketPurchasesController = class TicketPurchasesController {
     create(req, dto) {
         return this.ticketPurchasesService.create(req.user.userId, dto);
     }
+    getEventReport(eventId) {
+        return this.ticketPurchasesService.getEventSalesReport(eventId);
+    }
     getAdminSummary() {
         return this.ticketPurchasesService.getAdminSummary();
     }
@@ -46,6 +49,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, create_ticket_purchase_dto_1.CreateTicketPurchaseDto]),
     __metadata("design:returntype", void 0)
 ], TicketPurchasesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)('report/event/:eventId'),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN'),
+    __param(0, (0, common_1.Param)('eventId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], TicketPurchasesController.prototype, "getEventReport", null);
 __decorate([
     (0, common_1.Get)('admin/summary'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),

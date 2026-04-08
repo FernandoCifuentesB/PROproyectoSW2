@@ -20,6 +20,48 @@ let TicketPurchasesService = class TicketPurchasesService {
         this.prisma = prisma;
         this.eventsService = eventsService;
     }
+    async getEventSalesReport(eventId) {
+        const event = await this.prisma.event.findUnique({
+            where: { id: eventId },
+            include: {
+                eventTickets: {
+                    include: {
+                        ticketType: true,
+                    },
+                },
+            },
+        });
+        if (!event) {
+            throw new common_1.NotFoundException('Evento no encontrado');
+        }
+        const rows = event.eventTickets.map((ticket) => {
+            const sold = ticket.sold;
+            const available = ticket.stock - ticket.sold;
+            const revenue = ticket.sold * ticket.price;
+            return {
+                ticketTypeName: ticket.ticketType.name,
+                unitPrice: ticket.price,
+                stock: ticket.stock,
+                sold,
+                available,
+                revenue,
+            };
+        });
+        const totalSold = rows.reduce((sum, r) => sum + r.sold, 0);
+        const totalRevenue = rows.reduce((sum, r) => sum + r.revenue, 0);
+        return {
+            event: {
+                id: event.id,
+                name: event.name,
+                date: event.date,
+            },
+            summary: {
+                totalSold,
+                totalRevenue,
+            },
+            rows,
+        };
+    }
     async create(userId, dto) {
         const result = await this.prisma.$transaction(async (tx) => {
             const user = await tx.user.findUnique({

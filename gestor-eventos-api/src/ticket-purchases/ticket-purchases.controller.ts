@@ -26,11 +26,17 @@ type AuthRequest = Request & {
 export class TicketPurchasesController {
   constructor(
     private readonly ticketPurchasesService: TicketPurchasesService,
-  ) {}
+  ) { }
 
   @Post()
   create(@Req() req: AuthRequest, @Body() dto: CreateTicketPurchaseDto) {
     return this.ticketPurchasesService.create(req.user.userId, dto);
+  }
+  @Get('report/event/:eventId')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
+  getEventReport(@Param('eventId') eventId: string) {
+    return this.ticketPurchasesService.getEventSalesReport(eventId);
   }
 
   @Get('admin/summary')
