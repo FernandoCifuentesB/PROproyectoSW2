@@ -27,7 +27,6 @@ let TicketPurchasesService = class TicketPurchasesService {
             });
             if (!user) {
                 throw new common_1.NotFoundException('Usuario no encontrado');
-                throw new common_1.NotFoundException("Usuario no encontrado");
             }
             const eventTicket = await tx.eventTicket.findUnique({
                 where: { id: dto.eventTicketId },
@@ -37,33 +36,26 @@ let TicketPurchasesService = class TicketPurchasesService {
                 },
             });
             if (!eventTicket) {
-                throw new common_1.NotFoundException("Tipo de entrada del evento no encontrado");
-            }
-            if (!eventTicket.event) {
-                throw new common_1.NotFoundException("Evento no encontrado");
+                throw new common_1.NotFoundException('Tipo de entrada del evento no encontrado');
             }
             if (!eventTicket.event) {
                 throw new common_1.NotFoundException('Evento no encontrado');
             }
             if (!eventTicket.event.isActive) {
-                throw new common_1.BadRequestException("No se pueden comprar entradas para un evento inactivo");
+                throw new common_1.BadRequestException('No se pueden comprar entradas para un evento inactivo');
             }
             if (!eventTicket.isActive) {
-                throw new common_1.BadRequestException("Este tipo de entrada no está disponible");
+                throw new common_1.BadRequestException('Este tipo de entrada no está disponible');
             }
             if (!eventTicket.ticketType.isActive) {
                 throw new common_1.BadRequestException('El tipo de entrada está inactivo');
             }
             if (dto.quantity <= 0) {
                 throw new common_1.BadRequestException('La cantidad debe ser mayor a cero');
-                throw new common_1.BadRequestException("El tipo de entrada está inactivo");
-            }
-            if (dto.quantity <= 0) {
-                throw new common_1.BadRequestException("La cantidad debe ser mayor a cero");
             }
             const available = eventTicket.stock - eventTicket.sold;
             if (available <= 0) {
-                throw new common_1.BadRequestException("Las entradas están agotadas");
+                throw new common_1.BadRequestException('Las entradas están agotadas');
             }
             if (dto.quantity > available) {
                 throw new common_1.BadRequestException(`Solo hay ${available} entradas disponibles para este tipo`);
@@ -84,7 +76,7 @@ let TicketPurchasesService = class TicketPurchasesService {
                     quantity: dto.quantity,
                     unitPrice: eventTicket.price,
                     totalPrice: eventTicket.price * dto.quantity,
-                    status: "CONFIRMED",
+                    status: 'CONFIRMED',
                 },
                 include: {
                     event: true,
@@ -107,8 +99,6 @@ let TicketPurchasesService = class TicketPurchasesService {
                 message: remaining === 0
                     ? 'Compra realizada. Este tipo de entrada quedó agotado'
                     : 'Compra realizada correctamente',
-                    ? "Compra realizada. Este tipo de entrada quedó agotado"
-                    : "Compra realizada correctamente",
                 purchase,
             };
         });
@@ -121,7 +111,6 @@ let TicketPurchasesService = class TicketPurchasesService {
         });
         if (!user) {
             throw new common_1.NotFoundException('Usuario no encontrado');
-            throw new common_1.NotFoundException("Usuario no encontrado");
         }
         return this.prisma.ticketPurchase.findMany({
             where: { userId: user.id },
@@ -134,29 +123,9 @@ let TicketPurchasesService = class TicketPurchasesService {
                 },
             },
             orderBy: {
-                createdAt: "desc",
+                createdAt: 'desc',
             },
         });
-    }
-    async findOne(id, userId) {
-        const purchase = await this.prisma.ticketPurchase.findFirst({
-            where: {
-                id,
-                userId,
-            },
-            include: {
-                event: true,
-                eventTicket: {
-                    include: {
-                        ticketType: true,
-                    },
-                },
-            },
-        });
-        if (!purchase) {
-            throw new common_1.NotFoundException("Compra no encontrada");
-        }
-        return purchase;
     }
     async findOne(id, userId) {
         const purchase = await this.prisma.ticketPurchase.findFirst({

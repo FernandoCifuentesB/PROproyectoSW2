@@ -13,54 +13,54 @@ export declare class TicketPurchasesController {
     create(req: AuthRequest, dto: CreateTicketPurchaseDto): Promise<{
         message: string;
         purchase: {
+            event: {
+                id: string;
+                price: number;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                name: string;
+                description: string;
+                date: Date;
+                imageUrl: string | null;
+                categoryId: string;
+            };
             user: {
                 id: string;
                 name: string;
                 email: string;
             };
-            event: {
-                id: string;
-                name: string;
-                isActive: boolean;
-                createdAt: Date;
-                updatedAt: Date;
-                description: string;
-                date: Date;
-                price: number;
-                imageUrl: string | null;
-                categoryId: string;
-            };
             eventTicket: {
                 ticketType: {
                     id: string;
-                    name: string;
                     isActive: boolean;
                     createdAt: Date;
                     updatedAt: Date;
+                    name: string;
                     description: string | null;
                 };
             } & {
                 id: string;
+                eventId: string;
+                ticketTypeId: string;
+                price: number;
+                stock: number;
+                sold: number;
                 isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                price: number;
-                eventId: string;
-                ticketTypeId: string;
-                stock: number;
-                sold: number;
             };
         } & {
             id: string;
+            eventId: string;
             createdAt: Date;
             updatedAt: Date;
-            userId: string;
-            eventId: string;
-            eventTicketId: string;
             quantity: number;
             unitPrice: number;
             totalPrice: number;
             status: import("@prisma/client").$Enums.PurchaseStatus;
+            userId: string;
+            eventTicketId: string;
         };
     }>;
     getAdminSummary(): Promise<{
@@ -72,93 +72,92 @@ export declare class TicketPurchasesController {
     findMine(req: AuthRequest): Promise<({
         event: {
             id: string;
-            name: string;
+            price: number;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
             description: string;
             date: Date;
-            price: number;
             imageUrl: string | null;
             categoryId: string;
         };
         eventTicket: {
             ticketType: {
                 id: string;
-                name: string;
                 isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string | null;
             };
         } & {
             id: string;
+            eventId: string;
+            ticketTypeId: string;
+            price: number;
+            stock: number;
+            sold: number;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
-            price: number;
-            eventId: string;
-            ticketTypeId: string;
-            stock: number;
-            sold: number;
         };
     } & {
         id: string;
+        eventId: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
-        eventId: string;
-        eventTicketId: string;
         quantity: number;
         unitPrice: number;
         totalPrice: number;
         status: import("@prisma/client").$Enums.PurchaseStatus;
+        userId: string;
+        eventTicketId: string;
     })[]>;
     findOne(id: string, req: AuthRequest): Promise<{
-    findOne(id: string, req: any): Promise<{
         event: {
             id: string;
-            name: string;
+            price: number;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
             description: string;
             date: Date;
-            price: number;
             imageUrl: string | null;
             categoryId: string;
         };
         eventTicket: {
             ticketType: {
                 id: string;
-                name: string;
                 isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string | null;
             };
         } & {
             id: string;
+            eventId: string;
+            ticketTypeId: string;
+            price: number;
+            stock: number;
+            sold: number;
             isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
-            price: number;
-            eventId: string;
-            ticketTypeId: string;
-            stock: number;
-            sold: number;
         };
     } & {
         id: string;
+        eventId: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
-        eventId: string;
-        eventTicketId: string;
         quantity: number;
         unitPrice: number;
         totalPrice: number;
         status: import("@prisma/client").$Enums.PurchaseStatus;
+        userId: string;
+        eventTicketId: string;
     }>;
 }
 export {};

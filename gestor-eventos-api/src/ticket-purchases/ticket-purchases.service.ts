@@ -7,11 +7,6 @@ import {
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
 import { EventsService } from '@/events/events.service';
-} from "@nestjs/common";
-
-import { PrismaService } from "@/prisma/prisma.service";
-import { CreateTicketPurchaseDto } from "./dto/create-ticket-purchase.dto";
-import { EventsService } from "@/events/events.service";
 
 @Injectable()
 export class TicketPurchasesService {
