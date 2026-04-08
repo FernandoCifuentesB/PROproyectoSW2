@@ -1,10 +1,31 @@
 import { EventsService } from "./events.service";
 import { CreateEventDto, UpdateEventDto } from "./dto";
 export declare class EventsController {
-    private service;
+    private readonly service;
     constructor(service: EventsService);
+    getTopSoldPublicEvents(): Promise<any[]>;
     findPublicOne(id: string): Promise<{
         interestCount: number;
+        eventTickets: ({
+            ticketType: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string | null;
+            };
+        } & {
+            id: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            price: number;
+            eventId: string;
+            ticketTypeId: string;
+            stock: number;
+            sold: number;
+        })[];
         category: {
             id: string;
             name: string;
@@ -28,11 +49,31 @@ export declare class EventsController {
         categoryId: string;
     }>;
     listPublic(page: number, pageSize: number, search?: string, categoryId?: string, minPrice?: string, maxPrice?: string, fromDate?: string, toDate?: string): Promise<{
-        page: number;
-        pageSize: number;
+        page: any;
+        pageSize: any;
         total: number;
         items: {
             interestCount: number;
+            eventTickets: ({
+                ticketType: {
+                    id: string;
+                    name: string;
+                    isActive: boolean;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    description: string | null;
+                };
+            } & {
+                id: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                price: number;
+                eventId: string;
+                ticketTypeId: string;
+                stock: number;
+                sold: number;
+            })[];
             category: {
                 id: string;
                 name: string;
@@ -58,6 +99,26 @@ export declare class EventsController {
     }>;
     listAdmin(): Promise<{
         interestCount: number;
+        eventTickets: ({
+            ticketType: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string | null;
+            };
+        } & {
+            id: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            price: number;
+            eventId: string;
+            ticketTypeId: string;
+            stock: number;
+            sold: number;
+        })[];
         category: {
             id: string;
             name: string;
@@ -82,6 +143,26 @@ export declare class EventsController {
     }[]>;
     get(id: string): Promise<{
         interestCount: number;
+        eventTickets: ({
+            ticketType: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string | null;
+            };
+        } & {
+            id: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            price: number;
+            eventId: string;
+            ticketTypeId: string;
+            stock: number;
+            sold: number;
+        })[];
         category: {
             id: string;
             name: string;

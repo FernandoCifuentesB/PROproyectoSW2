@@ -61,4 +61,9 @@ export type TicketPurchase = {
   updatedAt?: string;
   event?: EventItem;
   eventTicket?: EventTicket;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };

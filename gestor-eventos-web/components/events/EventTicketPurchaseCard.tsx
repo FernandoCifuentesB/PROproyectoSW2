@@ -1,51 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createTicketPurchase, getEventTicketsPublic } from "@/lib/ticket-api";
-import { EventTicket } from "@/lib/types";
-import { formatCop, getAvailableStock, isTicketSoldOut } from "@/lib/tickets";
-import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import Button from "@/components/ui/Button";
+import { getEventTicketsPublic, createTicketPurchase } from "@/lib/ticket-api";
+import { EventTicket } from "@/lib/types";
+import { formatCop } from "@/lib/tickets";
+import { useAuth } from "@/lib/auth";
 
 type Props = {
   eventId: string;
-  canBuy?: boolean;
+  canBuy: boolean;
 };
 
-export default function EventTicketPurchaseCard({ eventId, canBuy = true }: Props) {
-  const { token } = useAuth();
+export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const router = useRouter();
+  const { token } = useAuth();
 
   const [tickets, setTickets] = useState<EventTicket[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
-  async function loadTickets() {
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await getEventTicketsPublic(eventId);
-      setTickets(data);
-      if (data.length > 0) {
-        setSelectedId(data[0].id);
-      }
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible cargar las entradas");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     loadTickets();
   }, [eventId]);
 
-  const selected = tickets.find((item) => item.id === selectedId);
-  const available = selected ? getAvailableStock(selected) : 0;
+  async function loadTickets() {
+    try {
+      const data = await getEventTicketsPublic(eventId);
+      setTickets(data || []);
+    } catch {
+      setTickets([]);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,14 +50,20 @@ export default function EventTicketPurchaseCard({ eventId, canBuy = true }: Prop
 
     setSubmitting(true);
     setMessage("");
+
     try {
       const result = await createTicketPurchase({
         eventTicketId: selectedId,
         quantity,
       });
+
       setMessage(result.message || "Compra realizada correctamente");
       setQuantity(1);
+
       await loadTickets();
+
+      // 🔥 REDIRECCIÓN A LA BOLETA
+      router.push(`/me/purchases/${result.purchase.id}`);
     } catch (error: any) {
       setMessage(error.message || "No fue posible completar la compra");
     } finally {
@@ -78,99 +72,69 @@ export default function EventTicketPurchaseCard({ eventId, canBuy = true }: Prop
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <div>
-        <h3 className="text-xl font-semibold">Entradas disponibles</h3>
-        <p className="text-sm text-neutral-600">
-          Seleccione el tipo de entrada y la cantidad.
-        </p>
-      </div>
+    <aside className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-semibold">Comprar entradas</h2>
 
-      {loading ? (
-        <p className="text-sm text-neutral-500">Cargando entradas...</p>
-      ) : tickets.length === 0 ? (
-        <p className="text-sm text-neutral-500">
-          No hay entradas disponibles para este evento.
+      {!canBuy && (
+        <p className="mt-4 text-sm text-red-600">
+          Este evento no está disponible para compra.
         </p>
-      ) : (
-        <>
-          <div className="space-y-3">
-            {tickets.map((ticket) => {
-              const soldOut = isTicketSoldOut(ticket);
-              return (
-                <label
-                  key={ticket.id}
-                  className={`flex cursor-pointer items-start justify-between rounded-2xl border p-4 ${
-                    selectedId === ticket.id ? "border-black" : "border-neutral-200"
-                  } ${soldOut ? "opacity-60" : ""}`}
-                >
-                  <div className="flex gap-3">
-                    <input
-                      type="radio"
-                      name="eventTicket"
-                      checked={selectedId === ticket.id}
-                      onChange={() => setSelectedId(ticket.id)}
-                      disabled={soldOut}
-                    />
-                    <div>
-                      <div className="font-medium">
-                        {ticket.ticketType?.name || "Entrada"}
-                      </div>
-                      <div className="text-sm text-neutral-600">
-                        {formatCop(ticket.price)}
-                      </div>
-                    </div>
-                  </div>
+      )}
 
-                  <div className="text-right text-sm">
-                    {soldOut ? (
-                      <span className="font-medium text-red-600">Agotado</span>
-                    ) : (
-                      <span>{getAvailableStock(ticket)} disponibles</span>
-                    )}
-                  </div>
-                </label>
-              );
-            })}
+      {canBuy && (
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Selección de tipo de ticket */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-700">
+              Tipo de entrada
+            </label>
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
+            >
+              <option value="">Seleccione</option>
+              {tickets
+                .filter((t) => t.isActive)
+                .map((ticket) => (
+                  <option key={ticket.id} value={ticket.id}>
+                    {ticket.ticketType?.name} -{" "}
+                    {formatCop(ticket.price)} (Disponibles:{" "}
+                    {ticket.stock - ticket.sold})
+                  </option>
+                ))}
+            </select>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label className="space-y-1">
-              <span className="text-sm font-medium">Cantidad</span>
-              <input
-                type="number"
-                min={1}
-                max={available || 1}
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full rounded-xl border px-3 py-2"
-                disabled={!canBuy || !selected || available <= 0}
-              />
+          {/* Cantidad */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-700">
+              Cantidad
             </label>
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+              className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
+            />
+          </div>
 
-            {selected && (
-              <div className="rounded-xl bg-neutral-50 px-4 py-3 text-sm">
-                Total estimado:{" "}
-                <strong>{formatCop(selected.price * quantity)}</strong>
-              </div>
-            )}
+          {/* Botón */}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-xl bg-black px-4 py-2 font-medium text-white"
+          >
+            {submitting ? "Procesando..." : "Comprar"}
+          </button>
 
-            <Button
-              type="submit"
-              disabled={!canBuy || !selected || available <= 0 || submitting}
-              className="w-full"
-            >
-              {submitting ? "Procesando..." : "Comprar entradas"}
-            </Button>
-          </form>
-        </>
+          {/* Mensaje */}
+          {message && (
+            <p className="text-sm text-center text-neutral-600">{message}</p>
+          )}
+        </form>
       )}
-
-      {message && (
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm">
-          {message}
-        </div>
-      )}
-    </section>
+    </aside>
   );
 }

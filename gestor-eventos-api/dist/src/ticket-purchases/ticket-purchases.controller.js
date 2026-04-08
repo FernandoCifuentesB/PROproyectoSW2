@@ -17,6 +17,8 @@ const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const ticket_purchases_service_1 = require("./ticket-purchases.service");
 const create_ticket_purchase_dto_1 = require("./dto/create-ticket-purchase.dto");
+const roles_decorator_1 = require("../auth/roles.decorator");
+const roles_guard_1 = require("../auth/roles.guard");
 let TicketPurchasesController = class TicketPurchasesController {
     ticketPurchasesService;
     constructor(ticketPurchasesService) {
@@ -25,8 +27,14 @@ let TicketPurchasesController = class TicketPurchasesController {
     create(req, dto) {
         return this.ticketPurchasesService.create(req.user.userId, dto);
     }
+    getAdminSummary() {
+        return this.ticketPurchasesService.getAdminSummary();
+    }
     findMine(req) {
         return this.ticketPurchasesService.findMine(req.user.userId);
+    }
+    findOne(id, req) {
+        return this.ticketPurchasesService.findOne(id, req.user.userId);
     }
 };
 exports.TicketPurchasesController = TicketPurchasesController;
@@ -39,15 +47,31 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], TicketPurchasesController.prototype, "create", null);
 __decorate([
-    (0, common_1.Get)("me"),
+    (0, common_1.Get)('admin/summary'),
+    (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], TicketPurchasesController.prototype, "getAdminSummary", null);
+__decorate([
+    (0, common_1.Get)('me'),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], TicketPurchasesController.prototype, "findMine", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], TicketPurchasesController.prototype, "findOne", null);
 exports.TicketPurchasesController = TicketPurchasesController = __decorate([
-    (0, common_1.Controller)("ticket-purchases"),
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt")),
+    (0, common_1.Controller)('ticket-purchases'),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     __metadata("design:paramtypes", [ticket_purchases_service_1.TicketPurchasesService])
 ], TicketPurchasesController);
 //# sourceMappingURL=ticket-purchases.controller.js.map
