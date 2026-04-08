@@ -3,190 +3,87 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-
+import { PurchaseStatus } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
-import { EventsService } from '@/events/events.service';
 
 @Injectable()
 export class TicketPurchasesService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly eventsService: EventsService,
-  ) { }
+  constructor(private readonly prisma: PrismaService) {}
 
-  async getEventSalesReport(eventId: string) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
+  async create(userId: string, dto: CreateTicketPurchaseDto) {
+    const { eventTicketId, quantity } = dto;
+
+    const eventTicket = await this.prisma.eventTicket.findUnique({
+      where: { id: eventTicketId },
       include: {
-        eventTickets: {
-          include: {
-            ticketType: true,
-          },
-        },
+        event: true,
+        ticketType: true,
       },
     });
 
-    if (!event) {
-      throw new NotFoundException('Evento no encontrado');
+    if (!eventTicket) {
+      throw new NotFoundException('La boleta del evento no fue encontrada');
     }
 
-    const rows = event.eventTickets.map((ticket) => {
-      const sold = ticket.sold;
-      const available = ticket.stock - ticket.sold;
-      const revenue = ticket.sold * ticket.price;
+    if (quantity <= 0) {
+      throw new BadRequestException('La cantidad debe ser mayor a cero');
+    }
 
-      return {
-        ticketTypeName: ticket.ticketType.name,
-        unitPrice: ticket.price,
-        stock: ticket.stock,
-        sold,
-        available,
-        revenue,
-      };
-    });
+    const available = eventTicket.stock - eventTicket.sold;
 
-    const totalSold = rows.reduce((sum, r) => sum + r.sold, 0);
-    const totalRevenue = rows.reduce((sum, r) => sum + r.revenue, 0);
+    if (quantity > available) {
+      throw new BadRequestException(
+        'No hay suficientes boletas disponibles',
+      );
+    }
 
-    return {
-      event: {
-        id: event.id,
-        name: event.name,
-        date: event.date,
-      },
-      summary: {
-        totalSold,
-        totalRevenue,
-      },
-      rows,
-    };
-  }
-  async create(userId: string, dto: CreateTicketPurchaseDto) {
-    const result = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-      });
+    const unitPrice = eventTicket.price;
+    const totalPrice = unitPrice * quantity;
 
-      if (!user) {
-        throw new NotFoundException('Usuario no encontrado');
-      }
-
-      const eventTicket = await tx.eventTicket.findUnique({
-        where: { id: dto.eventTicketId },
-        include: {
-          event: true,
-          ticketType: true,
-        },
-      });
-
-      if (!eventTicket) {
-        throw new NotFoundException('Tipo de entrada del evento no encontrado');
-      }
-
-      if (!eventTicket.event) {
-        throw new NotFoundException('Evento no encontrado');
-      }
-
-      if (!eventTicket.event.isActive) {
-        throw new BadRequestException(
-          'No se pueden comprar entradas para un evento inactivo',
-        );
-      }
-
-      if (!eventTicket.isActive) {
-        throw new BadRequestException(
-          'Este tipo de entrada no está disponible',
-        );
-      }
-
-      if (!eventTicket.ticketType.isActive) {
-        throw new BadRequestException('El tipo de entrada está inactivo');
-      }
-
-      if (dto.quantity <= 0) {
-        throw new BadRequestException('La cantidad debe ser mayor a cero');
-      }
-
-      const available = eventTicket.stock - eventTicket.sold;
-
-      if (available <= 0) {
-        throw new BadRequestException('Las entradas están agotadas');
-      }
-
-      if (dto.quantity > available) {
-        throw new BadRequestException(
-          `Solo hay ${available} entradas disponibles para este tipo`,
-        );
-      }
-
-      await tx.eventTicket.update({
-        where: { id: eventTicket.id },
+    const purchase = await this.prisma.$transaction(async (tx) => {
+      const createdPurchase = await tx.ticketPurchase.create({
         data: {
-          sold: {
-            increment: dto.quantity,
-          },
-        },
-      });
-
-      const purchase = await tx.ticketPurchase.create({
-        data: {
-          userId: user.id,
+          userId,
           eventId: eventTicket.eventId,
-          eventTicketId: eventTicket.id,
-          quantity: dto.quantity,
-          unitPrice: eventTicket.price,
-          totalPrice: eventTicket.price * dto.quantity,
-          status: 'CONFIRMED',
+          eventTicketId,
+          quantity,
+          unitPrice,
+          totalPrice,
+          status: PurchaseStatus.PENDING,
         },
         include: {
-          event: true,
           eventTicket: {
             include: {
+              event: true,
               ticketType: true,
             },
           },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
+        },
+      });
+
+      await tx.eventTicket.update({
+        where: { id: eventTicketId },
+        data: {
+          sold: {
+            increment: quantity,
           },
         },
       });
 
-      const remaining = available - dto.quantity;
-
-      return {
-        message:
-          remaining === 0
-            ? 'Compra realizada. Este tipo de entrada quedó agotado'
-            : 'Compra realizada correctamente',
-        purchase,
-      };
+      return createdPurchase;
     });
 
-    await this.eventsService.clearTopSoldCache();
-
-    return result;
+    return purchase;
   }
 
   async findMine(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-
     return this.prisma.ticketPurchase.findMany({
-      where: { userId: user.id },
+      where: { userId },
       include: {
-        event: true,
         eventTicket: {
           include: {
+            event: true,
             ticketType: true,
           },
         },
@@ -204,9 +101,9 @@ export class TicketPurchasesService {
         userId,
       },
       include: {
-        event: true,
         eventTicket: {
           include: {
+            event: true,
             ticketType: true,
           },
         },
@@ -220,33 +117,78 @@ export class TicketPurchasesService {
     return purchase;
   }
 
-  async getAdminSummary() {
-    const [revenue, registeredUsers, events] = await Promise.all([
-      this.prisma.ticketPurchase.aggregate({
-        where: { status: 'CONFIRMED' },
-        _sum: { totalPrice: true },
-      }),
-      this.prisma.user.count({
-        where: { role: 'USER' },
-      }),
-      this.prisma.event.findMany({
-        select: {
-          id: true,
-          date: true,
-          isActive: true,
+  async getEventSalesReport(eventId: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        eventTickets: {
+          include: {
+            ticketType: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
         },
-      }),
-    ]);
+      },
+    });
 
-    const now = new Date();
+    if (!event) {
+      throw new NotFoundException('Evento no encontrado');
+    }
+
+    const rows = event.eventTickets.map((ticket) => {
+      const sold = ticket.sold;
+      const available = ticket.stock - ticket.sold;
+      const revenue = ticket.sold * ticket.price;
+
+      return {
+        eventTicketId: ticket.id,
+        ticketTypeId: ticket.ticketTypeId,
+        ticketTypeName: ticket.ticketType.name,
+        unitPrice: ticket.price,
+        stock: ticket.stock,
+        sold,
+        available,
+        revenue,
+      };
+    });
+
+    const totalSold = rows.reduce((sum, row) => sum + row.sold, 0);
+    const totalRevenue = rows.reduce((sum, row) => sum + row.revenue, 0);
 
     return {
-      totalRevenue: revenue._sum.totalPrice ?? 0,
-      activeEvents: events.filter(
-        (event) => event.isActive && new Date(event.date) >= now,
-      ).length,
-      pastEvents: events.filter((event) => new Date(event.date) < now).length,
-      registeredUsers,
+      event: {
+        id: event.id,
+        name: event.name,
+        date: event.date,
+      },
+      summary: {
+        totalSold,
+        totalRevenue,
+      },
+      rows,
+    };
+  }
+
+  async getAdminSummary() {
+    const totalRevenue = await this.prisma.ticketPurchase.aggregate({
+      _sum: {
+        totalPrice: true,
+      },
+      where: {
+        status: PurchaseStatus.CONFIRMED,
+      },
+    });
+
+    const totalSales = await this.prisma.ticketPurchase.count({
+      where: {
+        status: PurchaseStatus.CONFIRMED,
+      },
+    });
+
+    return {
+      totalSales,
+      totalRevenue: totalRevenue._sum.totalPrice || 0,
     };
   }
 }
