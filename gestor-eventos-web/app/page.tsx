@@ -123,6 +123,7 @@ function PublicHomePage() {
         </p>
         <h1 className="text-3xl font-bold md:text-4xl">
           Encuentra tu proximo plan
+          Encuentra tu próximo plan
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-blue-100 md:text-base">
           Descubre eventos activos, marca tus favoritos y compra tus entradas
@@ -210,12 +211,99 @@ function PublicHomePage() {
           )}
         </div>
       </section>
+  {/* 🔥 TÍTULO */}
+  <div className="mb-8 text-center">
+    <h2 className="text-3xl font-extrabold text-blue-950">
+      Top 3 más vendidos
+    </h2>
+    <div className="mx-auto mt-2 h-1 w-16 rounded-full bg-yellow-400"></div>
+  </div>
+
+  {/* 🔥 CARDS */}
+  <div className="grid gap-6 md:grid-cols-3">
+    {topSold.map((event, index) => {
+      const minPrice = getMinTicketPrice(event);
+
+      return (
+        <div
+          key={event.id}
+          className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm hover:shadow-md transition"
+        >
+          {/* Imagen */}
+          {event.imageUrl ? (
+            <img
+              src={event.imageUrl}
+              alt={event.name}
+              className="h-48 w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-48 items-center justify-center bg-blue-50 text-sm text-blue-900">
+              Sin imagen
+            </div>
+          )}
+
+          {/* Contenido */}
+          <div className="p-5">
+            {/* Ranking */}
+            <div className="mb-3 flex items-center justify-between">
+              <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-bold text-blue-950">
+                #{index + 1}
+              </span>
+
+              <span className="text-xs font-semibold text-gray-500">
+                {event.soldCount} vendidas
+              </span>
+            </div>
+
+            {/* Nombre */}
+            <h3 className="text-lg font-bold text-blue-950">
+              {event.name}
+            </h3>
+
+            {/* Descripción */}
+            <p className="mt-2 line-clamp-2 text-sm text-gray-600">
+              {event.description}
+            </p>
+
+            {/* Fecha */}
+            <p className="mt-3 text-sm text-gray-500">
+              {new Date(event.date).toLocaleString("es-CO")}
+            </p>
+
+            {/* Precio */}
+            <p className="mt-2 text-base font-semibold text-blue-900">
+              {minPrice !== null
+                ? `Desde ${formatCop(minPrice)}`
+                : "Precio por definir"}
+            </p>
+
+            {/* Botón */}
+            <button
+              onClick={() => router.push(`/event-detail?eventId=${event.id}`)}
+              className="mt-4 w-full rounded-full bg-blue-950 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
+            >
+              Ver evento
+            </button>
+          </div>
+        </div>
+      );
+    })}
+
+    {/* 🔥 Estado vacío */}
+    {!topSold.length && (
+      <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-600 md:col-span-3">
+        Aún no hay eventos vendidos para mostrar.
+      </div>
+    )}
+  </div>
+</section>
 
       <section className="mb-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-4">
           <h2 className="text-2xl font-bold text-blue-950">Filtrar eventos</h2>
           <p className="mt-1 text-sm text-gray-600">
             Filtra por categoria o nombre y revisa el detalle de cada evento con
+            Filtra por categoría o nombre y revisa el detalle de cada evento con
             sus entradas disponibles.
           </p>
         </div>
@@ -223,6 +311,7 @@ function PublicHomePage() {
         <div className="grid gap-4 md:grid-cols-[1fr_280px_auto]">
           <Input
             placeholder="Buscar por nombre o descripcion"
+            placeholder="Buscar por nombre o descripción"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -286,6 +375,7 @@ function PublicHomePage() {
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-900">
                     {event.category?.name || "Sin categoria"}
+                    {event.category?.name || "Sin categoría"}
                   </span>
 
                   {isInterested && (
@@ -331,6 +421,8 @@ function PublicHomePage() {
                       : isInterested
                         ? "Ya me interesa"
                         : "Me interesa"}
+                      ? "✓ Me interesa"
+                      : "Me interesa"}
                   </Button>
 
                   <Button onClick={() => handleBuy(event.id)} className="w-full">
@@ -352,6 +444,7 @@ function PublicHomePage() {
       <section className="mt-8 flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
         <p className="text-sm text-gray-600">
           Pagina {page} de {totalPages}
+          Página {page} de {totalPages}
         </p>
 
         <div className="flex gap-2">

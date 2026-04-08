@@ -115,6 +115,7 @@ export declare class TicketPurchasesController {
         status: import("@prisma/client").$Enums.PurchaseStatus;
     })[]>;
     findOne(id: string, req: AuthRequest): Promise<{
+    findOne(id: string, req: any): Promise<{
         event: {
             id: string;
             name: string;

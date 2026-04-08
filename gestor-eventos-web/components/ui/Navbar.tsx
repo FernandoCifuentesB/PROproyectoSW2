@@ -54,6 +54,27 @@ export default function Navbar() {
               </Link>
 
               <Link
+          {!token && (
+            <div className="flex gap-2">
+              <Link
+                href="/login"
+                className="rounded-full border border-white px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Iniciar sesión
+              </Link>
+
+              <Link
+                href="/register"
+                className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-blue-900 shadow transition hover:bg-yellow-300"
+              >
+                Registrarse
+              </Link>
+            </div>
+          )}
+
+          {token && isAdmin && (
+            <>
+              <Link
                 href="/admin/events"
                 className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
               >
@@ -99,6 +120,15 @@ export default function Navbar() {
                 Registrarse
               </Link>
             </div>
+              </Link>
+
+              <Link
+                href="/admin/users"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Usuarios
+              </Link>
+            </>
           )}
 
           {token && (
@@ -143,6 +173,15 @@ export default function Navbar() {
                       href="/me"
                       className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
                       onClick={() => setOpen(false)}
+                    >
+                      Mi cuenta
+                    </Link>
+
+                    <Link
+                      href="/me/favorites"
+                      className="block px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-900"
+                      onClick={() => setOpen(false)}
+                    >
                     >
                       Mi cuenta
                     </Link>

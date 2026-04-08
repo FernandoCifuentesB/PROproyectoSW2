@@ -1,6 +1,9 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
 import { EventsService } from '@/events/events.service';
+import { PrismaService } from "@/prisma/prisma.service";
+import { CreateTicketPurchaseDto } from "./dto/create-ticket-purchase.dto";
+import { EventsService } from "@/events/events.service";
 export declare class TicketPurchasesService {
     private readonly prisma;
     private readonly eventsService;
