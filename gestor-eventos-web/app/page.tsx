@@ -2,13 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
+import AuthModal from "@/components/auth/AuthModal";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Category, EventItem, Paged } from "@/lib/types";
 import Card from "@/components/ui/Card";
-import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import { formatCop, getMinTicketPrice } from "@/lib/tickets";
 
@@ -32,6 +30,8 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
   const [favSet, setFavSet] = useState<Set<string>>(new Set());
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<"login" | "register">("login");
 
   const pageSize = 6;
 
@@ -82,7 +82,8 @@ export default function HomePage() {
 
   const toggleInterest = async (eventId: string) => {
     if (!token) {
-      router.push("/login");
+      setAuthTab("login");
+      setAuthOpen(true);
       return;
     }
 
@@ -90,7 +91,6 @@ export default function HomePage() {
 
     try {
       await apiPost("/interests/toggle", { eventId });
-
       setFavSet((prev) => {
         const next = new Set(prev);
         if (next.has(eventId)) next.delete(eventId);
@@ -104,7 +104,8 @@ export default function HomePage() {
 
   const handleBuy = (eventId: string) => {
     if (!token) {
-      router.push("/login");
+      setAuthTab("login");
+      setAuthOpen(true);
       return;
     }
 
@@ -259,9 +260,8 @@ export default function HomePage() {
                 </p>
 
                 <p
-                  className={`mt-2 text-sm font-medium ${
-                    event.isActive ? "text-green-600" : "text-red-600"
-                  }`}
+                  className={`mt-2 text-sm font-medium ${event.isActive ? "text-green-600" : "text-red-600"
+                    }`}
                 >
                   {event.isActive ? "Disponible" : "Evento inactivo"}
                 </p>
@@ -319,6 +319,12 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+
+      <AuthModal
+        open={authOpen}
+        defaultTab={authTab}
+        onClose={() => setAuthOpen(false)}
+      />
     </main>
   );
 }
