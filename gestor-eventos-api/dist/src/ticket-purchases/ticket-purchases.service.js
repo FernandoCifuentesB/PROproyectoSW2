@@ -46,10 +46,27 @@ let TicketPurchasesService = class TicketPurchasesService {
         if (!eventTicket) {
             throw new common_1.NotFoundException('La boleta del evento no fue encontrada');
         }
+        if (!eventTicket.isActive) {
+            throw new common_1.BadRequestException('Esta boleta no está disponible para compra');
+        }
+        if (!eventTicket.event.isActive) {
+            throw new common_1.BadRequestException('Este evento no está disponible para compra');
+        }
+        if (!eventTicket.event.date) {
+            throw new common_1.BadRequestException('El evento no tiene una fecha válida');
+        }
+        const now = new Date();
+        const eventDate = new Date(eventTicket.event.date);
+        if (eventDate.getTime() <= now.getTime()) {
+            throw new common_1.BadRequestException('Este evento ya finalizó y no está disponible para compra');
+        }
         if (quantity <= 0) {
             throw new common_1.BadRequestException('La cantidad debe ser mayor a cero');
         }
         const available = eventTicket.stock - eventTicket.sold;
+        if (available <= 0) {
+            throw new common_1.BadRequestException('No hay boletas disponibles para esta entrada');
+        }
         if (quantity > available) {
             throw new common_1.BadRequestException('No hay suficientes boletas disponibles');
         }
