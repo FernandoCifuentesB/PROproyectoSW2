@@ -100,6 +100,13 @@ function EventDetailContent() {
   }
 
   const minPrice = getMinTicketPrice(event);
+  const isExpired = new Date(event.date) <= new Date();
+  const hasAvailableTickets =
+    event.eventTickets?.some(
+      (ticket) => ticket.isActive && ticket.stock - ticket.sold > 0,
+    ) ?? false;
+
+  const canBuy = event.isActive && !isExpired && hasAvailableTickets;
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 p-6 lg:grid-cols-[1.3fr_0.7fr]">
@@ -138,7 +145,21 @@ function EventDetailContent() {
         </div>
       </section>
 
-      <EventTicketPurchaseCard eventId={eventId} canBuy={event.isActive} />
+      <div className="space-y-3">
+        {isExpired && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Este evento ya finalizó. Solo se puede ver su detalle.
+          </p>
+        )}
+
+        {!isExpired && !hasAvailableTickets && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Este evento no tiene boletas disponibles.
+          </p>
+        )}
+
+        <EventTicketPurchaseCard eventId={eventId} canBuy={canBuy} />
+      </div>
     </main>
   );
 }

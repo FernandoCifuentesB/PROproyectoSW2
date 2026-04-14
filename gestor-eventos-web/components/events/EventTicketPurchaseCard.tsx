@@ -22,6 +22,10 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const availableTickets = tickets.filter(
+    (ticket) => ticket.isActive && ticket.stock - ticket.sold > 0,
+  );
+
   useEffect(() => {
     loadTickets();
   }, [eventId]);
@@ -37,6 +41,11 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!canBuy) {
+      setMessage("Este evento no está disponible para compra");
+      return;
+    }
 
     if (!selectedId) {
       setMessage("Seleccione un tipo de entrada");
@@ -59,6 +68,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
       setMessage(result.message || "Compra realizada correctamente");
       setQuantity(1);
+      setSelectedId("");
 
       await loadTickets();
       router.push(`/me/purchases/${result.purchase.id}`);
@@ -95,14 +105,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
               className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
             >
               <option value="">Seleccione</option>
-              {tickets
-                .filter((t) => t.isActive)
-                .map((ticket) => (
-                  <option key={ticket.id} value={ticket.id}>
-                    {ticket.ticketType?.name} - {formatCop(ticket.price)}{" "}
-                    (Disponibles: {ticket.stock - ticket.sold})
-                  </option>
-                ))}
+              {availableTickets.map((ticket) => (
+                <option key={ticket.id} value={ticket.id}>
+                  {ticket.ticketType?.name} - {formatCop(ticket.price)}{" "}
+                  (Disponibles: {ticket.stock - ticket.sold})
+                </option>
+              ))}
             </select>
           </div>
 
@@ -121,8 +129,8 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-black px-4 py-2 font-medium text-white"
+            disabled={submitting || !canBuy || availableTickets.length === 0}
+            className="w-full rounded-xl bg-black px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? "Procesando..." : "Comprar"}
           </button>
