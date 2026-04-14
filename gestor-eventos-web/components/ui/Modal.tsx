@@ -4,46 +4,41 @@ import { ReactNode, useEffect } from "react";
 
 export default function Modal({
   open,
-  title,
   children,
   onClose,
 }: {
   open: boolean;
-  title?: string;
   children: ReactNode;
   onClose: () => void;
 }) {
   useEffect(() => {
+    if (!open) return;
+
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    if (open) window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* backdrop */}
       <button
-        className="absolute inset-0 bg-black/60"
+        type="button"
+        className="absolute inset-0 bg-black/40"
         onClick={onClose}
         aria-label="Cerrar"
       />
 
-      {/* panel */}
-      <div className="absolute left-1/2 top-1/2 w-[min(720px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-[var(--border)] bg-[var(--bg)] p-5 shadow-xl">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-extrabold">{title ?? "Editar"}</h2>
-          <button
-            className="rounded-xl border border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)] hover:text-white"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
-
+      <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2">
         {children}
       </div>
     </div>
