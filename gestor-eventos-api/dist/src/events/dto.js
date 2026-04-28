@@ -10,13 +10,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateEventDto = exports.CreateEventDto = void 0;
+const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 class CreateEventDto {
     name;
     description;
     date;
-    price;
     imageUrl;
+    tickets;
     categoryId;
 }
 exports.CreateEventDto = CreateEventDto;
@@ -35,15 +36,14 @@ __decorate([
     __metadata("design:type", String)
 ], CreateEventDto.prototype, "date", void 0);
 __decorate([
-    (0, class_validator_1.IsInt)(),
-    (0, class_validator_1.Min)(0),
-    __metadata("design:type", Number)
-], CreateEventDto.prototype, "price", void 0);
-__decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateEventDto.prototype, "imageUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateEventDto.prototype, "tickets", void 0);
 __decorate([
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
@@ -52,8 +52,9 @@ class UpdateEventDto {
     name;
     description;
     date;
-    price;
     imageUrl;
+    tickets;
+    removeImage;
     categoryId;
     isActive;
 }
@@ -77,21 +78,26 @@ __decorate([
 ], UpdateEventDto.prototype, "date", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsInt)(),
-    (0, class_validator_1.Min)(0),
-    __metadata("design:type", Number)
-], UpdateEventDto.prototype, "price", void 0);
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateEventDto.prototype, "imageUrl", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], UpdateEventDto.prototype, "imageUrl", void 0);
+], UpdateEventDto.prototype, "tickets", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateEventDto.prototype, "removeImage", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], UpdateEventDto.prototype, "categoryId", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => value === "true" ? true : value === "false" ? false : value),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)

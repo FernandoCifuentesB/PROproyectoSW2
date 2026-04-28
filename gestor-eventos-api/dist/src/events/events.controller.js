@@ -15,10 +15,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventsController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const platform_express_1 = require("@nestjs/platform-express");
+const multer_1 = require("multer");
+const path_1 = require("path");
+const fs_1 = require("fs");
 const events_service_1 = require("./events.service");
 const dto_1 = require("./dto");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const roles_guard_1 = require("../auth/roles.guard");
+const uploadDir = (0, path_1.join)(process.cwd(), "uploads", "events");
+function ensureUploadDir() {
+    if (!(0, fs_1.existsSync)(uploadDir)) {
+        (0, fs_1.mkdirSync)(uploadDir, { recursive: true });
+    }
+}
+function eventImageStorage() {
+    ensureUploadDir();
+    return (0, multer_1.diskStorage)({
+        destination: uploadDir,
+        filename: (_req, file, callback) => {
+            const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+            callback(null, `event-${uniqueSuffix}${(0, path_1.extname)(file.originalname) || ".jpg"}`);
+        },
+    });
+}
 let EventsController = class EventsController {
     service;
     constructor(service) {
@@ -52,11 +72,11 @@ let EventsController = class EventsController {
     get(id) {
         return this.service.get(id);
     }
-    create(dto) {
-        return this.service.create(dto);
+    create(dto, image) {
+        return this.service.create(dto, image);
     }
-    update(id, dto) {
-        return this.service.update(id, dto);
+    update(id, dto, image) {
+        return this.service.update(id, dto, image);
     }
     remove(id) {
         return this.service.remove(id);
@@ -111,19 +131,35 @@ __decorate([
     (0, common_1.Post)(),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)("ADMIN"),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)("image", {
+        storage: eventImageStorage(),
+        limits: { fileSize: 5 * 1024 * 1024 },
+        fileFilter: (_req, file, callback) => {
+            callback(null, file.mimetype.startsWith("image/"));
+        },
+    })),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [dto_1.CreateEventDto]),
+    __metadata("design:paramtypes", [dto_1.CreateEventDto, Object]),
     __metadata("design:returntype", void 0)
 ], EventsController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(":id"),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)("ADMIN"),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)("image", {
+        storage: eventImageStorage(),
+        limits: { fileSize: 5 * 1024 * 1024 },
+        fileFilter: (_req, file, callback) => {
+            callback(null, file.mimetype.startsWith("image/"));
+        },
+    })),
     __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, dto_1.UpdateEventDto]),
+    __metadata("design:paramtypes", [String, dto_1.UpdateEventDto, Object]),
     __metadata("design:returntype", void 0)
 ], EventsController.prototype, "update", null);
 __decorate([
