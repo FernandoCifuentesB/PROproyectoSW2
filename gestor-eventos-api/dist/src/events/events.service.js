@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventsService = void 0;
 const common_1 = require("@nestjs/common");
 const cache_manager_1 = require("@nestjs/cache-manager");
+const promises_1 = require("fs/promises");
 const prisma_service_1 = require("../prisma/prisma.service");
 let EventsService = class EventsService {
     prisma;
@@ -27,17 +28,17 @@ let EventsService = class EventsService {
     async getTopSoldPublicEvents() {
         const cached = await this.cacheManager.get(this.topSoldCacheKey);
         if (cached) {
-            console.log("✅ TOP 3 DESDE CACHE", cached);
+            console.log("TOP 3 DESDE CACHE", cached);
             return cached;
         }
-        console.log("🟡 TOP 3 CONSULTADO DESDE BD");
+        console.log("TOP 3 CONSULTADO DESDE BD");
         const purchases = await this.prisma.ticketPurchase.groupBy({
             by: ["eventId"],
             _sum: {
                 quantity: true,
             },
         });
-        console.log("🧾 COMPRAS AGRUPADAS:", purchases);
+        console.log("COMPRAS AGRUPADAS:", purchases);
         if (!purchases.length) {
             await this.cacheManager.set(this.topSoldCacheKey, [], 1000 * 60 * 5);
             return [];
@@ -63,7 +64,7 @@ let EventsService = class EventsService {
         });
         const items = purchases
             .map((row) => {
-            const event = events.find((e) => e.id === row.eventId);
+            const event = events.find((item) => item.id === row.eventId);
             if (!event)
                 return null;
             return {
@@ -72,19 +73,19 @@ let EventsService = class EventsService {
                 soldCount: row._sum.quantity ?? 0,
             };
         })
-            .filter((e) => e !== null)
+            .filter((event) => event !== null)
             .sort((a, b) => b.soldCount - a.soldCount)
             .slice(0, 3);
-        console.log("🏆 TOP FINAL:", items.map((e) => ({
-            name: e.name,
-            soldCount: e.soldCount,
+        console.log("TOP FINAL:", items.map((event) => ({
+            name: event.name,
+            soldCount: event.soldCount,
         })));
         await this.cacheManager.set(this.topSoldCacheKey, items, 1000 * 60 * 5);
         return items;
     }
     async clearTopSoldCache() {
         await this.cacheManager.del(this.topSoldCacheKey);
-        console.log("🗑️ CACHE TOP 3 ELIMINADA");
+        console.log("CACHE TOP 3 ELIMINADA");
     }
     async listPublic(query) {
         const { page = 1, pageSize = 6 } = query;
@@ -119,9 +120,9 @@ let EventsService = class EventsService {
             page,
             pageSize,
             total,
-            items: items.map((e) => ({
-                ...e,
-                interestCount: e._count.interests,
+            items: items.map((event) => ({
+                ...event,
+                interestCount: event._count.interests,
             })),
         };
     }
@@ -142,9 +143,9 @@ let EventsService = class EventsService {
                 },
             },
         });
-        return items.map((e) => ({
-            ...e,
-            interestCount: e._count.interests,
+        return items.map((event) => ({
+            ...event,
+            interestCount: event._count.interests,
         }));
     }
     async get(id) {
@@ -171,28 +172,149 @@ let EventsService = class EventsService {
             interestCount: event._count.interests,
         };
     }
-    async create(dto) {
+    async create(dto, image) {
         const category = await this.prisma.category.findUnique({
             where: { id: dto.categoryId },
         });
         if (!category) {
-            throw new common_1.BadRequestException("categoryId inválido");
+            throw new common_1.BadRequestException("categoryId invalido");
         }
-        return this.prisma.event.create({
-            data: {
-                ...dto,
-                isActive: true,
+        const tickets = await this.parseAndValidateTickets(dto.tickets);
+        const imageUrl = image ? this.toImageUrl(image) : dto.imageUrl ?? null;
+        const minPrice = this.getMinTicketPrice(tickets);
+        let createdId = null;
+        try {
+            const created = await this.prisma.$transaction(async (tx) => {
+                const event = await tx.event.create({
+                    data: {
+                        name: dto.name,
+                        description: dto.description,
+                        date: dto.date,
+                        categoryId: dto.categoryId,
+                        imageUrl,
+                        price: minPrice,
+                        isActive: true,
+                    },
+                });
+                await tx.eventTicket.createMany({
+                    data: tickets.map((ticket) => ({
+                        eventId: event.id,
+                        ticketTypeId: ticket.ticketTypeId,
+                        price: ticket.price,
+                        stock: ticket.stock,
+                        isActive: ticket.isActive ?? true,
+                    })),
+                });
+                return event;
+            });
+            createdId = created.id;
+        }
+        catch (error) {
+            if (imageUrl) {
+                await this.deleteLocalImage(imageUrl);
+            }
+            throw error;
+        }
+        await this.clearTopSoldCache();
+        return this.get(createdId);
+    }
+    async update(id, dto, image) {
+        const existing = await this.prisma.event.findUnique({
+            where: { id },
+            include: {
+                eventTickets: true,
             },
         });
-    }
-    async update(id, dto) {
-        await this.get(id);
-        const updated = await this.prisma.event.update({
-            where: { id },
-            data: dto,
-        });
+        if (!existing) {
+            throw new common_1.NotFoundException("Evento no existe");
+        }
+        if (dto.categoryId) {
+            const category = await this.prisma.category.findUnique({
+                where: { id: dto.categoryId },
+            });
+            if (!category) {
+                throw new common_1.BadRequestException("categoryId invalido");
+            }
+        }
+        const tickets = dto.tickets !== undefined
+            ? await this.parseAndValidateTickets(dto.tickets, existing.eventTickets)
+            : existing.eventTickets.map((ticket) => ({
+                id: ticket.id,
+                ticketTypeId: ticket.ticketTypeId,
+                price: ticket.price,
+                stock: ticket.stock,
+                isActive: ticket.isActive,
+            }));
+        const imageUrl = this.resolveUpdatedImageUrl(existing.imageUrl, dto, image);
+        const minPrice = this.getMinTicketPrice(tickets);
+        const incomingIds = new Set(tickets.filter((ticket) => ticket.id).map((ticket) => ticket.id));
+        try {
+            await this.prisma.$transaction(async (tx) => {
+                for (const current of existing.eventTickets) {
+                    if (incomingIds.has(current.id))
+                        continue;
+                    if (current.sold > 0) {
+                        throw new common_1.BadRequestException(`No se puede eliminar una boleta que ya tiene ventas registradas (${current.ticketTypeId})`);
+                    }
+                }
+                await tx.event.update({
+                    where: { id },
+                    data: {
+                        ...(dto.name !== undefined ? { name: dto.name } : {}),
+                        ...(dto.description !== undefined ? { description: dto.description } : {}),
+                        ...(dto.date !== undefined ? { date: dto.date } : {}),
+                        ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
+                        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+                        imageUrl,
+                        price: minPrice,
+                    },
+                });
+                const removableIds = existing.eventTickets
+                    .filter((ticket) => !incomingIds.has(ticket.id))
+                    .map((ticket) => ticket.id);
+                if (removableIds.length) {
+                    await tx.eventTicket.deleteMany({
+                        where: {
+                            eventId: id,
+                            id: { in: removableIds },
+                        },
+                    });
+                }
+                for (const ticket of tickets) {
+                    if (ticket.id) {
+                        await tx.eventTicket.update({
+                            where: { id: ticket.id },
+                            data: {
+                                price: ticket.price,
+                                stock: ticket.stock,
+                                isActive: ticket.isActive ?? true,
+                            },
+                        });
+                        continue;
+                    }
+                    await tx.eventTicket.create({
+                        data: {
+                            eventId: id,
+                            ticketTypeId: ticket.ticketTypeId,
+                            price: ticket.price,
+                            stock: ticket.stock,
+                            isActive: ticket.isActive ?? true,
+                        },
+                    });
+                }
+            });
+        }
+        catch (error) {
+            if (image && imageUrl) {
+                await this.deleteLocalImage(imageUrl);
+            }
+            throw error;
+        }
+        if (existing.imageUrl && existing.imageUrl !== imageUrl) {
+            await this.deleteLocalImage(existing.imageUrl);
+        }
         await this.clearTopSoldCache();
-        return updated;
+        return this.get(id);
     }
     async remove(id) {
         await this.get(id);
@@ -201,6 +323,111 @@ let EventsService = class EventsService {
         });
         await this.clearTopSoldCache();
         return deleted;
+    }
+    toImageUrl(file) {
+        return `/uploads/events/${file.filename}`;
+    }
+    resolveUpdatedImageUrl(currentImageUrl, dto, image) {
+        if (image)
+            return this.toImageUrl(image);
+        if (dto.removeImage === "true")
+            return null;
+        if (dto.imageUrl !== undefined)
+            return dto.imageUrl || null;
+        return currentImageUrl;
+    }
+    async parseAndValidateTickets(rawTickets, existingTickets = []) {
+        if (rawTickets === undefined || rawTickets === null || rawTickets === "") {
+            throw new common_1.BadRequestException("Debe agregar al menos una boleta.");
+        }
+        let parsed;
+        if (typeof rawTickets === "string") {
+            try {
+                parsed = JSON.parse(rawTickets);
+            }
+            catch {
+                throw new common_1.BadRequestException("Formato invalido para las boletas.");
+            }
+        }
+        else {
+            parsed = rawTickets;
+        }
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+            throw new common_1.BadRequestException("Debe agregar al menos una boleta.");
+        }
+        const normalized = parsed.map((ticket, index) => {
+            if (!ticket || typeof ticket !== "object") {
+                throw new common_1.BadRequestException(`Boleta invalida en la posicion ${index + 1}.`);
+            }
+            const candidate = ticket;
+            const normalizedTicket = {
+                id: typeof candidate.id === "string" ? candidate.id : undefined,
+                ticketTypeId: typeof candidate.ticketTypeId === "string" ? candidate.ticketTypeId : "",
+                price: Number(candidate.price),
+                stock: Number(candidate.stock),
+                isActive: typeof candidate.isActive === "boolean"
+                    ? candidate.isActive
+                    : candidate.isActive === "true"
+                        ? true
+                        : candidate.isActive === "false"
+                            ? false
+                            : true,
+            };
+            if (!normalizedTicket.ticketTypeId) {
+                throw new common_1.BadRequestException(`La boleta ${index + 1} debe tener un tipo.`);
+            }
+            if (!Number.isInteger(normalizedTicket.price) || normalizedTicket.price <= 0) {
+                throw new common_1.BadRequestException(`La boleta ${index + 1} debe tener un precio valido.`);
+            }
+            if (!Number.isInteger(normalizedTicket.stock) || normalizedTicket.stock < 0) {
+                throw new common_1.BadRequestException(`La boleta ${index + 1} debe tener un stock valido.`);
+            }
+            return normalizedTicket;
+        });
+        const seenTypes = new Set();
+        for (const ticket of normalized) {
+            if (seenTypes.has(ticket.ticketTypeId)) {
+                throw new common_1.BadRequestException("No se puede repetir el tipo de boleta en un mismo evento.");
+            }
+            seenTypes.add(ticket.ticketTypeId);
+        }
+        const validTypes = await this.prisma.ticketType.findMany({
+            where: {
+                id: { in: normalized.map((ticket) => ticket.ticketTypeId) },
+            },
+            select: { id: true },
+        });
+        if (validTypes.length !== normalized.length) {
+            throw new common_1.BadRequestException("Uno o mas tipos de boleta no existen.");
+        }
+        const existingById = new Map(existingTickets.map((ticket) => [ticket.id, ticket]));
+        for (const ticket of normalized) {
+            if (!ticket.id)
+                continue;
+            const existing = existingById.get(ticket.id);
+            if (!existing) {
+                throw new common_1.BadRequestException("Se recibio una boleta inexistente para actualizar.");
+            }
+            if (existing.ticketTypeId !== ticket.ticketTypeId) {
+                throw new common_1.BadRequestException("No se puede cambiar el tipo de una boleta existente.");
+            }
+            if (ticket.stock < existing.sold) {
+                throw new common_1.BadRequestException(`El stock no puede quedar por debajo de lo vendido (${existing.sold}).`);
+            }
+        }
+        return normalized;
+    }
+    getMinTicketPrice(tickets) {
+        return tickets.reduce((min, ticket) => Math.min(min, ticket.price), tickets[0].price);
+    }
+    async deleteLocalImage(imageUrl) {
+        if (!imageUrl.startsWith("/uploads/events/"))
+            return;
+        try {
+            await (0, promises_1.unlink)(`.${imageUrl}`);
+        }
+        catch {
+        }
     }
 };
 exports.EventsService = EventsService;

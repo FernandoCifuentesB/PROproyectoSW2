@@ -39,11 +39,15 @@ function stringifyErrorBody(body: unknown) {
 
   // Si el backend manda { message, error, statusCode }
   if (typeof body === "object" && body !== null) {
-    const anyBody = body as any;
+    const anyBody = body as Record<string, unknown>;
     const msg =
-      (Array.isArray(anyBody.message) ? anyBody.message.join(", ") : anyBody.message) ||
-      anyBody.error ||
-      anyBody.detail;
+      (Array.isArray(anyBody.message)
+        ? anyBody.message.join(", ")
+        : typeof anyBody.message === "string"
+          ? anyBody.message
+          : undefined) ||
+      (typeof anyBody.error === "string" ? anyBody.error : undefined) ||
+      (typeof anyBody.detail === "string" ? anyBody.detail : undefined);
 
     if (msg) return String(msg);
 
@@ -109,6 +113,20 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   return handleResponse<T>(res, "POST", path);
 }
 
+export async function apiPostForm<T>(path: string, body: FormData): Promise<T> {
+  const API = requireApiUrl();
+
+  const res = await fetchWithTimeout(`${API}${path}`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body,
+  });
+
+  return handleResponse<T>(res, "POST", path);
+}
+
 export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   const API = requireApiUrl();
 
@@ -119,6 +137,20 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
       ...getAuthHeaders(),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  return handleResponse<T>(res, "PATCH", path);
+}
+
+export async function apiPatchForm<T>(path: string, body: FormData): Promise<T> {
+  const API = requireApiUrl();
+
+  const res = await fetchWithTimeout(`${API}${path}`, {
+    method: "PATCH",
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body,
   });
 
   return handleResponse<T>(res, "PATCH", path);
@@ -135,4 +167,12 @@ export async function apiDelete<T>(path: string): Promise<T> {
   });
 
   return handleResponse<T>(res, "DELETE", path);
+}
+
+export function resolveApiAssetUrl(path?: string | null) {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+
+  const API = requireApiUrl();
+  return `${API}${path.startsWith("/") ? path : `/${path}`}`;
 }
