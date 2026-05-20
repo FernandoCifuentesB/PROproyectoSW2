@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { ChevronDown } from "lucide-react";
 import AuthModal from "@/components/auth/AuthModal";
 
 export default function Navbar() {
@@ -12,10 +13,12 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
-
+  const [adminOpen, setAdminOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const isAdmin = user?.role === "ADMIN";
-
+  const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
+  const reportsMenuRef = useRef<HTMLDivElement>(null);
   function handleOpenLogin() {
     setAuthTab("login");
     setAuthOpen(true);
@@ -31,30 +34,30 @@ export default function Navbar() {
   }
 
   useEffect(() => {
-    if (!open) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
 
-    function handleClickOutside(event: MouseEvent) {
-      if (!menuRef.current) return;
+      const clickedOutsideAdmin =
+        adminMenuRef.current && !adminMenuRef.current.contains(target);
 
-      if (!menuRef.current.contains(event.target as Node)) {
-        setOpen(false);
+      const clickedOutsideReports =
+        reportsMenuRef.current && !reportsMenuRef.current.contains(target);
+
+      if (clickedOutsideAdmin) {
+        setAdminOpen(false);
       }
-    }
 
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
+      if (clickedOutsideReports) {
+        setReportsMenuOpen(false);
       }
-    }
+    };
 
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
     };
-  }, [open]);
+  }, []);
 
   return (
     <>
@@ -92,47 +95,89 @@ export default function Navbar() {
 
             {token && isAdmin && (
               <>
-                <Link
-                  href="/admin/ganancias"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
-                  Ganancias
-                </Link>
+                <div ref={adminMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminOpen((prev) => !prev);
+                      setReportsMenuOpen(false);
+                    }}
+                    className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+                  >
+                    Administración
+                    <ChevronDown
+                      size={17}
+                      className={`transition-transform duration-200 ${adminOpen ? "rotate-180" : "rotate-0"
+                        }`}
+                    />
+                  </button>
 
-                <Link
-                  href="/admin/events"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
-                  Admin Eventos
-                </Link>
+                  {adminOpen && (
+                    <div className="absolute right-0 z-50 mt-3 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                      <Link
+                        href="/admin/events"
+                        onClick={() => setAdminOpen(false)}
+                        className="block px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Admin Eventos
+                      </Link>
 
-                <Link
-                  href="/admin/categories"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
-                  Admin Categorias
-                </Link>
+                      <Link
+                        href="/admin/categories"
+                        onClick={() => setAdminOpen(false)}
+                        className="block px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Admin Categorías
+                      </Link>
 
-                <Link
-                  href="/admin/reports/event-sales"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
-                  Reporte de entradas
-                </Link>
+                      <Link
+                        href="/admin/users"
+                        onClick={() => setAdminOpen(false)}
+                        className="block px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Usuarios
+                      </Link>
+                    </div>
+                  )}
+                </div>
 
-                <Link
-                  href="/reports/top"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
-                  Top
-                </Link>
+                <div ref={reportsMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportsMenuOpen((prev) => !prev);
+                      setAdminOpen(false);
+                    }}
+                    className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+                  >
+                    Reportes
+                    <ChevronDown
+                      size={17}
+                      className={`transition-transform duration-200 ${reportsMenuOpen ? "rotate-180" : "rotate-0"
+                        }`}
+                    />
+                  </button>
 
-                <Link
-                  href="/admin/users"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
-                  Usuarios
-                </Link>
+                  {reportsMenuOpen && (
+                    <div className="absolute right-0 z-50 mt-3 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                      <Link
+                        href="/reports/top"
+                        onClick={() => setReportsMenuOpen(false)}
+                        className="block px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Top
+                      </Link>
+
+                      <Link
+                        href="/admin/reports/event-sales"
+                        onClick={() => setReportsMenuOpen(false)}
+                        className="block px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Reporte de entradas
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
