@@ -39,20 +39,21 @@ async function parseBody(res: Response) {
 
   if (!text) return null;
 
-  if (isHtmlResponse(text)) {
+  const contentType = res.headers.get("content-type") || "";
+
+  if (contentType.includes("text/html")) {
     return {
-      __htmlError: true,
       message:
-        "La API respondió HTML en vez de JSON. Revisa que NEXT_PUBLIC_API_URL apunte al backend correcto y que la ruta exista.",
-      status: res.status,
-      contentType: res.headers.get("content-type"),
+        "La URL de la pasarela de pagos está mal configurada o el endpoint /payments no existe.",
     };
   }
 
   try {
     return JSON.parse(text);
   } catch {
-    return text;
+    return {
+      message: text.slice(0, 200),
+    };
   }
 }
 
@@ -65,7 +66,7 @@ function stringifyErrorBody(body: unknown) {
     if (anyBody.__htmlError === true) {
       return String(
         anyBody.message ||
-          "La API respondió HTML en vez de JSON. Revisa la URL del backend.",
+        "La API respondió HTML en vez de JSON. Revisa la URL del backend.",
       );
     }
 

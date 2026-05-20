@@ -125,8 +125,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
         typeof crypto !== "undefined" && crypto.randomUUID
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random()}`;
-
-      await createPayment({
+      console.log("PAYMENT REQUEST FRONT:", {
+        provider: cardBrand,
+        cardNumber,
+        amount: totalAmount,
+      });
+      const paymentResult = await createPayment({
         externalRef: `event-${eventId}-ticket-${selectedId}-${Date.now()}`,
         idempotencyKey,
         provider: cardBrand,
@@ -135,25 +139,43 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
         amount: totalAmount,
       });
 
-      const result = await createTicketPurchase({
+      const paymentWasRejected =
+        paymentResult.payment.status === "RECHAZADO" ||
+        paymentResult.payment.providerResponse?.approved === false;
+
+      if (paymentWasRejected) {
+        setMessage(
+          paymentResult.payment.providerResponse?.reason
+            ? `Compra rechazada: ${paymentResult.payment.providerResponse.reason}`
+            : "Compra rechazada por la pasarela de pagos",
+        );
+
+        return;
+      }
+
+      await createTicketPurchase({
         eventTicketId: selectedId,
         quantity,
       });
 
-      setMessage("Pago aprobado y compra realizada correctamente");
+      setMessage("Compra aceptada");
+
       setQuantity(1);
       setCardNumber("");
       setCvv("");
 
       await loadTickets();
-
-      router.push("/me/purchases");
     } catch (error) {
-      setMessage(
+      const errorMessage =
         error instanceof Error
           ? error.message
-          : "No fue posible completar el pago",
-      );
+          : "No fue posible completar el pago";
+
+      const safeMessage = errorMessage.includes("<!DOCTYPE html>")
+        ? "No se pudo conectar correctamente con la pasarela de pagos. Revisa NEXT_PUBLIC_PAYMENT_API_URL."
+        : errorMessage;
+
+      setMessage(safeMessage);
     } finally {
       setSubmitting(false);
     }

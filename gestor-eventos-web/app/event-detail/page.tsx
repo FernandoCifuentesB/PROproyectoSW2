@@ -161,7 +161,6 @@ function EventDetailContent() {
         )}
 
         {canBuy && <EventTicketPurchaseCard eventId={event.id} canBuy={canBuy} />}
-        <EventTicketPurchaseCard eventId={eventId} canBuy={canBuy} />
       </div>
     </main>
   );
