@@ -107,6 +107,13 @@ function EventDetailContent() {
     ) ?? false;
 
   const canBuy = event.isActive && !isExpired && hasAvailableTickets;
+  const unavailableReason = isExpired
+    ? "Este evento ya finalizó y no está disponible para compra."
+    : !event.isActive
+      ? "Este evento se encuentra inactivo."
+      : !hasAvailableTickets
+        ? "Este evento no tiene boletas disponibles."
+        : "";
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 p-6 lg:grid-cols-[1.3fr_0.7fr]">
@@ -139,25 +146,21 @@ function EventDetailContent() {
             {interestLoading
               ? "Actualizando..."
               : interested
-              ? "Ya me interesa"
-              : "Me interesa"}
+                ? "Ya me interesa"
+                : "Me interesa"}
           </Button>
         </div>
       </section>
 
       <div className="space-y-3">
-        {isExpired && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            Este evento ya finalizó. Solo se puede ver su detalle.
-          </p>
+        {!canBuy && (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+            <p className="text-sm font-bold text-red-700">No disponible</p>
+            <p className="mt-1 text-sm text-red-600">{unavailableReason}</p>
+          </div>
         )}
 
-        {!isExpired && !hasAvailableTickets && (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            Este evento no tiene boletas disponibles.
-          </p>
-        )}
-
+        {canBuy && <EventTicketPurchaseCard eventId={event.id} canBuy={canBuy} />}
         <EventTicketPurchaseCard eventId={eventId} canBuy={canBuy} />
       </div>
     </main>
