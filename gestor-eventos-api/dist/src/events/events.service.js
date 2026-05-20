@@ -48,14 +48,15 @@ let EventsService = class EventsService {
             where: {
                 id: { in: eventIds },
                 isActive: true,
+                date: {
+                    gt: new Date(),
+                },
             },
             include: {
                 category: true,
                 eventTickets: {
                     where: { isActive: true },
-                    include: {
-                        ticketType: true,
-                    },
+                    include: { ticketType: true },
                 },
                 _count: {
                     select: { interests: true },
@@ -88,42 +89,84 @@ let EventsService = class EventsService {
         console.log("CACHE TOP 3 ELIMINADA");
     }
     async listPublic(query) {
-        const { page = 1, pageSize = 6 } = query;
-        const skip = (page - 1) * pageSize;
+        const { page = 1, pageSize = 6, search, categoryId, minPrice, maxPrice, fromDate, toDate, } = query;
+        const now = new Date();
         const where = {
             isActive: true,
         };
-        const [items, total] = await Promise.all([
-            this.prisma.event.findMany({
-                where,
-                skip,
-                take: pageSize,
-                orderBy: {
-                    name: "asc",
-                },
-                include: {
-                    category: true,
-                    eventTickets: {
-                        where: { isActive: true },
-                        include: {
-                            ticketType: true,
-                        },
-                    },
-                    _count: {
-                        select: { interests: true },
+        if (categoryId) {
+            where.categoryId = categoryId;
+        }
+        if (search?.trim()) {
+            where.OR = [
+                { name: { contains: search.trim(), mode: "insensitive" } },
+                { description: { contains: search.trim(), mode: "insensitive" } },
+                {
+                    category: {
+                        name: { contains: search.trim(), mode: "insensitive" },
                     },
                 },
-            }),
-            this.prisma.event.count({ where }),
-        ]);
+            ];
+        }
+        if (fromDate || toDate) {
+            where.date = {};
+            if (fromDate) {
+                where.date.gte = new Date(fromDate);
+            }
+            if (toDate) {
+                const endDate = new Date(toDate);
+                endDate.setHours(23, 59, 59, 999);
+                where.date.lte = endDate;
+            }
+        }
+        if (minPrice !== undefined || maxPrice !== undefined) {
+            where.eventTickets = {
+                some: {
+                    isActive: true,
+                    price: {
+                        ...(minPrice !== undefined && !Number.isNaN(minPrice)
+                            ? { gte: Number(minPrice) }
+                            : {}),
+                        ...(maxPrice !== undefined && !Number.isNaN(maxPrice)
+                            ? { lte: Number(maxPrice) }
+                            : {}),
+                    },
+                },
+            };
+        }
+        const events = await this.prisma.event.findMany({
+            where,
+            include: {
+                category: true,
+                eventTickets: {
+                    where: { isActive: true },
+                    include: { ticketType: true },
+                },
+                _count: {
+                    select: { interests: true },
+                },
+            },
+        });
+        const sorted = events
+            .map((event) => ({
+            ...event,
+            interestCount: event._count.interests,
+            isExpired: new Date(event.date).getTime() <= now.getTime(),
+        }))
+            .sort((a, b) => {
+            if (a.isExpired !== b.isExpired) {
+                return a.isExpired ? 1 : -1;
+            }
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
+        const total = sorted.length;
+        const skip = (page - 1) * pageSize;
+        const items = sorted.slice(skip, skip + pageSize);
         return {
             page,
             pageSize,
             total,
-            items: items.map((event) => ({
-                ...event,
-                interestCount: event._count.interests,
-            })),
+            items,
         };
     }
     async listAdmin() {
