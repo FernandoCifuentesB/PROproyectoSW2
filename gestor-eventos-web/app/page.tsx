@@ -21,7 +21,7 @@ type TopSoldEvent = EventItem & {
 export default function HomePage() {
   const { token } = useAuth();
   const router = useRouter();
-
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [cats, setCats] = useState<Category[]>([]);
   const [data, setData] = useState<Paged<EventItem> | null>(null);
   const [topSold, setTopSold] = useState<TopSoldEvent[]>([]);
@@ -36,6 +36,16 @@ export default function HomePage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const filterTypes: {
+    id: "nombre" | "tipo" | "precio" | "fecha";
+    label: string;
+    icon: string;
+  }[] = [
+      { id: "nombre", label: "Nombre", icon: "🔎" },
+      { id: "tipo", label: "Tipo", icon: "🏷️" },
+      { id: "precio", label: "Precio", icon: "💰" },
+      { id: "fecha", label: "Fecha", icon: "📅" },
+    ];
 
   const pageSize = 6;
 
@@ -109,6 +119,7 @@ export default function HomePage() {
     setFromDate("");
     setToDate("");
     setPage(1);
+    setActiveFilter(null);
   };
   const toggleInterest = async (eventId: string) => {
     if (!token) {
@@ -238,93 +249,191 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Card className="mb-10 p-6">
-        <div className="mb-5">
-          <p className="text-sm font-semibold uppercase tracking-wide text-yellow-500">
+      <Card className="mb-10 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        {/* Header */}
+        <div className="border-b border-slate-100 px-6 py-6 md:px-8">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-yellow-500">
             Buscar eventos
           </p>
-          <h2 className="text-2xl font-bold text-blue-950">
-            Filtra por nombre, tipo, precio o fecha
-          </h2>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-blue-950">
+                ¿Cómo quieres filtrar?
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Selecciona un tipo de filtro y encuentra más rápido el evento que buscas.
+              </p>
+            </div>
+
+            {activeFilter && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 hover:text-red-700"
+              >
+                ✕ Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Buscar por nombre"
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
-          />
+        {/* Selector de tipo de filtro */}
+        <div className="px-6 pt-6 md:px-8">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {filterTypes.map((filter) => {
+              const isActive = activeFilter === filter.id;
 
-          <select
-            value={categoryId}
-            onChange={(e) => {
-              setCategoryId(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
-          >
-            <option value="">Todos los tipos</option>
-            {cats.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+              return (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setActiveFilter(isActive ? null : filter.id)}
+                  className={`flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-200 ${isActive
+                    ? "border-blue-900 bg-blue-950 text-white shadow-md"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900"
+                    }`}
+                >
+                  <span className="text-base">{filter.icon}</span>
+                  <span>{filter.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-          <input
-            type="number"
-            value={minPrice}
-            onChange={(e) => {
-              setMinPrice(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Precio mínimo"
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
-          />
+        {/* Área dinámica */}
+        <div className="px-6 py-6 md:px-8">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 md:p-6">
+            {!activeFilter && (
+              <div className="flex min-h-[110px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/60 px-6 text-center">
+                <p className="text-sm text-slate-400">
+                  Selecciona un tipo de filtro para comenzar.
+                </p>
+              </div>
+            )}
 
-          <input
-            type="number"
-            value={maxPrice}
-            onChange={(e) => {
-              setMaxPrice(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Precio máximo"
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
-          />
+            {activeFilter === "nombre" && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Buscar por nombre
+                </label>
+                <input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Ej: Festival de verano..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            )}
 
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => {
-              setFromDate(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
-          />
+            {activeFilter === "tipo" && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Categoría del evento
+                </label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => {
+                    setCategoryId(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">Todos los tipos</option>
+                  {cats.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => {
-              setToDate(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
-          />
+            {activeFilter === "precio" && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Rango de precio
+                </label>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={clearFilters}
-            className="lg:col-span-2"
-          >
-            Limpiar filtros
-          </Button>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-500">
+                      Precio mínimo
+                    </label>
+                    <input
+                      type="number"
+                      value={minPrice}
+                      onChange={(e) => {
+                        setMinPrice(e.target.value);
+                        setPage(1);
+                      }}
+                      placeholder="Ej: 30000"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-500">
+                      Precio máximo
+                    </label>
+                    <input
+                      type="number"
+                      value={maxPrice}
+                      onChange={(e) => {
+                        setMaxPrice(e.target.value);
+                        setPage(1);
+                      }}
+                      placeholder="Ej: 150000"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeFilter === "fecha" && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Rango de fechas
+                </label>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-500">
+                      Desde
+                    </label>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => {
+                        setFromDate(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-500">
+                      Hasta
+                    </label>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => {
+                        setToDate(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
 

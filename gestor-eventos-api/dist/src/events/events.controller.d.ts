@@ -11,46 +11,46 @@ export declare class EventsController {
     getTopSoldPublicEvents(): Promise<any[]>;
     findPublicOne(id: string): Promise<{
         interestCount: number;
-        _count: {
-            interests: number;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
-            isActive: boolean;
-        };
         eventTickets: ({
             ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string | null;
-                isActive: boolean;
             };
         } & {
             id: string;
-            eventId: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
             price: number;
-            isActive: boolean;
+            eventId: string;
             ticketTypeId: string;
             stock: number;
             sold: number;
         })[];
+        category: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+        };
+        _count: {
+            interests: number;
+        };
         id: string;
+        name: string;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
         categoryId: string;
     }>;
     listPublic(page: number, pageSize: number, search?: string, categoryId?: string, minPrice?: string, maxPrice?: string, fromDate?: string, toDate?: string): Promise<{
@@ -60,235 +60,235 @@ export declare class EventsController {
         items: {
             interestCount: number;
             isExpired: boolean;
-            _count: {
-                interests: number;
-            };
-            category: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                name: string;
-                description: string | null;
-                isActive: boolean;
-            };
             eventTickets: ({
                 ticketType: {
                     id: string;
+                    name: string;
+                    isActive: boolean;
                     createdAt: Date;
                     updatedAt: Date;
-                    name: string;
                     description: string | null;
-                    isActive: boolean;
                 };
             } & {
                 id: string;
-                eventId: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
                 price: number;
-                isActive: boolean;
+                eventId: string;
                 ticketTypeId: string;
                 stock: number;
                 sold: number;
             })[];
+            category: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string | null;
+            };
+            _count: {
+                interests: number;
+            };
             id: string;
+            name: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
-            name: string;
             description: string;
             date: Date;
             price: number;
             imageUrl: string | null;
-            isActive: boolean;
             categoryId: string;
         }[];
     }>;
     listAdmin(): Promise<{
         interestCount: number;
-        _count: {
-            interests: number;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
-            isActive: boolean;
-        };
         eventTickets: ({
             ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string | null;
-                isActive: boolean;
             };
         } & {
             id: string;
-            eventId: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
             price: number;
-            isActive: boolean;
+            eventId: string;
             ticketTypeId: string;
             stock: number;
             sold: number;
         })[];
+        category: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+        };
+        _count: {
+            interests: number;
+        };
         id: string;
+        name: string;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
         categoryId: string;
     }[]>;
     get(id: string): Promise<{
         interestCount: number;
-        _count: {
-            interests: number;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
-            isActive: boolean;
-        };
         eventTickets: ({
             ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string | null;
-                isActive: boolean;
             };
         } & {
             id: string;
-            eventId: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
             price: number;
-            isActive: boolean;
+            eventId: string;
             ticketTypeId: string;
             stock: number;
             sold: number;
         })[];
+        category: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+        };
+        _count: {
+            interests: number;
+        };
         id: string;
+        name: string;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
         categoryId: string;
     }>;
     create(dto: CreateEventDto, image?: UploadedImage): Promise<{
         interestCount: number;
-        _count: {
-            interests: number;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
-            isActive: boolean;
-        };
         eventTickets: ({
             ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string | null;
-                isActive: boolean;
             };
         } & {
             id: string;
-            eventId: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
             price: number;
-            isActive: boolean;
+            eventId: string;
             ticketTypeId: string;
             stock: number;
             sold: number;
         })[];
+        category: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+        };
+        _count: {
+            interests: number;
+        };
         id: string;
+        name: string;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
         categoryId: string;
     }>;
     update(id: string, dto: UpdateEventDto, image?: UploadedImage): Promise<{
         interestCount: number;
-        _count: {
-            interests: number;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
-            isActive: boolean;
-        };
         eventTickets: ({
             ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string | null;
-                isActive: boolean;
             };
         } & {
             id: string;
-            eventId: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
             price: number;
-            isActive: boolean;
+            eventId: string;
             ticketTypeId: string;
             stock: number;
             sold: number;
         })[];
+        category: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string | null;
+        };
+        _count: {
+            interests: number;
+        };
         id: string;
+        name: string;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
         categoryId: string;
     }>;
     remove(id: string): Promise<{
         id: string;
+        name: string;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         description: string;
         date: Date;
         price: number;
         imageUrl: string | null;
-        isActive: boolean;
         categoryId: string;
     }>;
 }
