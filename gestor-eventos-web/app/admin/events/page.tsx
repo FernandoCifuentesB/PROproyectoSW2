@@ -12,6 +12,7 @@ import {
   buildEventFormData,
   createEmptyForm,
   createEmptyTicketRow,
+  hasErrors,
   mapEventToForm,
   revokeBlobUrl,
   validateForm,
@@ -56,12 +57,14 @@ export default function AdminEventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [serverError, setServerError] = useState("");
   const [editServerError, setEditServerError] = useState("");
-  const [createOpen, setCreateOpen] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [createForm, setCreateForm] = useState<EventFormState>(createEmptyForm);
   const [editForm, setEditForm] = useState<EventFormState>(createEmptyForm);
   const [editOpen, setEditOpen] = useState(false);
+  const [createTouched, setCreateTouched] = useState(false);
+  const [editTouched, setEditTouched] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,13 +97,27 @@ export default function AdminEventsPage() {
     load().catch((error: Error) => setServerError(error.message));
   }, [token, user]);
 
-  const createErrors = useMemo(() => validateForm(createForm), [createForm]);
-  const editErrors = useMemo(() => validateForm(editForm), [editForm]);
+  const createErrors = useMemo(
+    () => (createTouched ? validateForm(createForm) : { ticketRows: createForm.tickets.map(() => ({})) }),
+    [createForm, createTouched],
+  );
 
+  const editErrors = useMemo(
+    () => (editTouched ? validateForm(editForm) : { ticketRows: editForm.tickets.map(() => ({})) }),
+    [editForm, editTouched],
+  );
   function updateForm(
     setter: Dispatch<SetStateAction<EventFormState>>,
     patch: Partial<EventFormState>,
   ) {
+    if (setter === setCreateForm) {
+      setCreateTouched(true);
+    }
+
+    if (setter === setEditForm) {
+      setEditTouched(true);
+    }
+
     setter((current) => ({ ...current, ...patch }));
   }
 
@@ -109,6 +126,14 @@ export default function AdminEventsPage() {
     index: number,
     patch: Partial<TicketFormRow>,
   ) {
+    if (setter === setCreateForm) {
+      setCreateTouched(true);
+    }
+
+    if (setter === setEditForm) {
+      setEditTouched(true);
+    }
+
     setter((current) => ({
       ...current,
       tickets: current.tickets.map((ticket, rowIndex) =>
@@ -118,6 +143,14 @@ export default function AdminEventsPage() {
   }
 
   function addTicketRow(setter: Dispatch<SetStateAction<EventFormState>>) {
+    if (setter === setCreateForm) {
+      setCreateTouched(true);
+    }
+
+    if (setter === setEditForm) {
+      setEditTouched(true);
+    }
+
     setter((current) => ({
       ...current,
       tickets: [...current.tickets, createEmptyTicketRow()],
@@ -128,6 +161,14 @@ export default function AdminEventsPage() {
     setter: Dispatch<SetStateAction<EventFormState>>,
     index: number,
   ) {
+    if (setter === setCreateForm) {
+      setCreateTouched(true);
+    }
+
+    if (setter === setEditForm) {
+      setEditTouched(true);
+    }
+
     setter((current) => ({
       ...current,
       tickets: current.tickets.filter((_, rowIndex) => rowIndex !== index),
@@ -139,6 +180,14 @@ export default function AdminEventsPage() {
     setter: Dispatch<SetStateAction<EventFormState>>,
     file: File,
   ) {
+    if (setter === setCreateForm) {
+      setCreateTouched(true);
+    }
+
+    if (setter === setEditForm) {
+      setEditTouched(true);
+    }
+
     revokeBlobUrl(currentPreview);
     const preview = URL.createObjectURL(file);
 
@@ -151,8 +200,17 @@ export default function AdminEventsPage() {
   }
 
   function handleRemoveImage(setter: Dispatch<SetStateAction<EventFormState>>) {
+    if (setter === setCreateForm) {
+      setCreateTouched(true);
+    }
+
+    if (setter === setEditForm) {
+      setEditTouched(true);
+    }
+
     setter((current) => {
       revokeBlobUrl(current.imagePreview);
+
       return {
         ...current,
         imageFile: null,
@@ -164,13 +222,22 @@ export default function AdminEventsPage() {
   }
 
   async function handleCreate() {
+    setCreateTouched(true);
+
+    const errors = validateForm(createForm);
+
+    if (hasErrors(errors)) {
+      return;
+    }
+
     setServerError("");
     setSubmitting(true);
 
     try {
-      await apiPostForm<EventItem>("/events", buildEventFormData(createForm));
+      await apiPostForm("/events", buildEventFormData(createForm));
       revokeBlobUrl(createForm.imagePreview);
       setCreateForm(createEmptyForm());
+      setCreateTouched(false);
       setCreateOpen(false);
       await load();
     } catch (error: unknown) {
@@ -186,6 +253,7 @@ export default function AdminEventsPage() {
     setEditForm(cloneForm(mapEventToForm(event)));
     setEditServerError("");
     setEditOpen(true);
+    setEditTouched(false);
   }
 
   async function handleEdit() {
@@ -245,7 +313,17 @@ export default function AdminEventsPage() {
           </h2>
           <button
             type="button"
-            onClick={() => setCreateOpen((prev) => !prev)}
+            onClick={() => {
+              setCreateOpen((prev) => {
+                const next = !prev;
+
+                if (!next) {
+                  setCreateTouched(false);
+                }
+
+                return next;
+              });
+            }}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-white text-lg font-semibold text-[var(--fg)] shadow-sm transition hover:bg-slate-50"
             aria-label={createOpen ? "Cerrar formulario" : "Abrir formulario"}
           >
@@ -273,7 +351,10 @@ export default function AdminEventsPage() {
             onAddTicket={() => addTicketRow(setCreateForm)}
             onChangeTicket={(index, patch) => updateTicketRow(setCreateForm, index, patch)}
             onRemoveTicket={(index) => removeTicketRow(setCreateForm, index)}
-            onCancel={() => setCreateOpen(false)}
+            onCancel={() => {
+              setCreateTouched(false);
+              setCreateOpen(false);
+            }}
             onSubmit={handleCreate}
           />
         </Card>
@@ -363,6 +444,7 @@ export default function AdminEventsPage() {
             revokeBlobUrl(editForm.imagePreview);
             setEditOpen(false);
             setEditingId(null);
+            setEditTouched(false);
             setEditForm(createEmptyForm());
           }}
           onSubmit={handleEdit}

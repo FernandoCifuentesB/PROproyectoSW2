@@ -169,7 +169,7 @@ export default function Navbar() {
                       </Link>
 
                       <Link
-                        href="/reports/tickets"
+                        href="/admin/reports/event-sales"
                         onClick={() => setReportsMenuOpen(false)}
                         className="block px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                       >
@@ -178,13 +178,6 @@ export default function Navbar() {
                     </div>
                   )}
                 </div>
-
-                <Link
-                  href="/admin/liquidaciones"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                >
-                  Liquidaciones
-                </Link>
               </>
             )}
 
