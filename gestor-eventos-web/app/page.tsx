@@ -32,11 +32,16 @@ export default function HomePage() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   const pageSize = 6;
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
+
     params.set("page", String(page));
     params.set("pageSize", String(pageSize));
 
@@ -48,8 +53,24 @@ export default function HomePage() {
       params.set("categoryId", categoryId);
     }
 
+    if (minPrice) {
+      params.set("minPrice", minPrice);
+    }
+
+    if (maxPrice) {
+      params.set("maxPrice", maxPrice);
+    }
+
+    if (fromDate) {
+      params.set("fromDate", fromDate);
+    }
+
+    if (toDate) {
+      params.set("toDate", toDate);
+    }
+
     return params.toString();
-  }, [page, pageSize, search, categoryId]);
+  }, [page, pageSize, search, categoryId, minPrice, maxPrice, fromDate, toDate]);
 
   useEffect(() => {
     apiGet<Category[]>("/categories").then(setCats).catch(console.error);
@@ -80,6 +101,15 @@ export default function HomePage() {
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
+  const clearFilters = () => {
+    setSearch("");
+    setCategoryId("");
+    setMinPrice("");
+    setMaxPrice("");
+    setFromDate("");
+    setToDate("");
+    setPage(1);
+  };
   const toggleInterest = async (eventId: string) => {
     if (!token) {
       setAuthTab("login");
@@ -208,10 +238,102 @@ export default function HomePage() {
         </div>
       </section>
 
+      <Card className="mb-10 p-6">
+        <div className="mb-5">
+          <p className="text-sm font-semibold uppercase tracking-wide text-yellow-500">
+            Buscar eventos
+          </p>
+          <h2 className="text-2xl font-bold text-blue-950">
+            Filtra por nombre, tipo, precio o fecha
+          </h2>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Buscar por nombre"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
+          />
+
+          <select
+            value={categoryId}
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
+          >
+            <option value="">Todos los tipos</option>
+            {cats.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="number"
+            value={minPrice}
+            onChange={(e) => {
+              setMinPrice(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Precio mínimo"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
+          />
+
+          <input
+            type="number"
+            value={maxPrice}
+            onChange={(e) => {
+              setMaxPrice(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Precio máximo"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
+          />
+
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => {
+              setFromDate(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
+          />
+
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => {
+              setToDate(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-900"
+          />
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={clearFilters}
+            className="lg:col-span-2"
+          >
+            Limpiar filtros
+          </Button>
+        </div>
+      </Card>
+
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {data?.items?.map((event) => {
           const minPrice = getMinTicketPrice(event);
           const isInterested = favSet.has(event.id);
+          const isExpired = new Date(event.date).getTime() <= new Date().getTime();
+          const isAvailable = event.isActive && !isExpired;
 
           return (
             <Card
@@ -259,12 +381,14 @@ export default function HomePage() {
                     : "Precio por definir"}
                 </p>
 
-                <p
-                  className={`mt-2 text-sm font-medium ${event.isActive ? "text-green-600" : "text-red-600"
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-bold ${isAvailable
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
                     }`}
                 >
-                  {event.isActive ? "Disponible" : "Evento inactivo"}
-                </p>
+                  {isAvailable ? "Disponible" : "No disponible"}
+                </span>
 
                 <div className="mt-5 grid gap-2">
                   <Button
@@ -280,8 +404,12 @@ export default function HomePage() {
                         : "Me interesa"}
                   </Button>
 
-                  <Button onClick={() => handleBuy(event.id)} className="w-full">
-                    Comprar
+                  <Button
+                    onClick={() => handleBuy(event.id)}
+                    disabled={!isAvailable}
+                    className="w-full"
+                  >
+                    {isAvailable ? "Comprar" : "No disponible"}
                   </Button>
                 </div>
               </div>

@@ -1,7 +1,6 @@
 const RAW_API = process.env.NEXT_PUBLIC_API_URL;
 
 function normalizeBaseUrl(url: string) {
-  // Quita espacios y slash final
   return url.trim().replace(/\/+$/, "");
 }
 
@@ -9,6 +8,7 @@ function requireApiUrl() {
   if (!RAW_API) {
     throw new Error("NEXT_PUBLIC_API_URL no está definido (.env.local)");
   }
+
   return normalizeBaseUrl(RAW_API);
 }
 
@@ -23,9 +23,31 @@ function getAuthHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
+function isHtmlResponse(text: string) {
+  const normalized = text.trim().toLowerCase();
+
+  return (
+    normalized.startsWith("<!doctype html") ||
+    normalized.startsWith("<html") ||
+    normalized.includes("<script") ||
+    normalized.includes("__next_f.push")
+  );
+}
+
 async function parseBody(res: Response) {
   const text = await res.text();
+
   if (!text) return null;
+
+  if (isHtmlResponse(text)) {
+    return {
+      __htmlError: true,
+      message:
+        "La API respondió HTML en vez de JSON. Revisa que NEXT_PUBLIC_API_URL apunte al backend correcto y que la ruta exista.",
+      status: res.status,
+      contentType: res.headers.get("content-type"),
+    };
+  }
 
   try {
     return JSON.parse(text);
@@ -37,15 +59,23 @@ async function parseBody(res: Response) {
 function stringifyErrorBody(body: unknown) {
   if (!body) return "";
 
-  // Si el backend manda { message, error, statusCode }
   if (typeof body === "object" && body !== null) {
     const anyBody = body as Record<string, unknown>;
+
+    if (anyBody.__htmlError === true) {
+      return String(
+        anyBody.message ||
+          "La API respondió HTML en vez de JSON. Revisa la URL del backend.",
+      );
+    }
+
     const msg =
       (Array.isArray(anyBody.message)
         ? anyBody.message.join(", ")
         : typeof anyBody.message === "string"
           ? anyBody.message
           : undefined) ||
+      (typeof anyBody.reason === "string" ? anyBody.reason : undefined) ||
       (typeof anyBody.error === "string" ? anyBody.error : undefined) ||
       (typeof anyBody.detail === "string" ? anyBody.detail : undefined);
 
@@ -58,7 +88,13 @@ function stringifyErrorBody(body: unknown) {
     }
   }
 
-  if (typeof body === "string") return body;
+  if (typeof body === "string") {
+    if (isHtmlResponse(body)) {
+      return "La API respondió HTML en vez de JSON. Revisa NEXT_PUBLIC_API_URL y la ruta del backend.";
+    }
+
+    return body;
+  }
 
   try {
     return JSON.stringify(body);
@@ -67,22 +103,46 @@ function stringifyErrorBody(body: unknown) {
   }
 }
 
-async function handleResponse<T>(res: Response, method: string, path: string): Promise<T> {
+async function handleResponse<T>(
+  res: Response,
+  method: string,
+  path: string,
+): Promise<T> {
   const body = await parseBody(res);
 
   if (!res.ok) {
     const detail = stringifyErrorBody(body);
-    throw new Error(`${method} ${path} -> ${res.status}${detail ? ` | ${detail}` : ""}`);
+
+    throw new Error(
+      `${method} ${path} -> ${res.status}${detail ? ` | ${detail}` : ""}`,
+    );
+  }
+
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "__htmlError" in body
+  ) {
+    throw new Error(
+      `${method} ${path} -> La API respondió HTML en vez de JSON. Revisa NEXT_PUBLIC_API_URL y confirma que el backend de eventos esté corriendo.`,
+    );
   }
 
   return (body ?? ({} as T)) as T;
 }
 
-// Opcional: timeout por defecto 20s
-function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 20000) {
+function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs = 20000,
+) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(t));
+
+  return fetch(input, {
+    ...init,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(t));
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -113,7 +173,10 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   return handleResponse<T>(res, "POST", path);
 }
 
-export async function apiPostForm<T>(path: string, body: FormData): Promise<T> {
+export async function apiPostForm<T>(
+  path: string,
+  body: FormData,
+): Promise<T> {
   const API = requireApiUrl();
 
   const res = await fetchWithTimeout(`${API}${path}`, {
@@ -142,7 +205,10 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   return handleResponse<T>(res, "PATCH", path);
 }
 
-export async function apiPatchForm<T>(path: string, body: FormData): Promise<T> {
+export async function apiPatchForm<T>(
+  path: string,
+  body: FormData,
+): Promise<T> {
   const API = requireApiUrl();
 
   const res = await fetchWithTimeout(`${API}${path}`, {

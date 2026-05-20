@@ -27,6 +27,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
   const [cardBrand, setCardBrand] = useState<CardBrand>("VISA");
   const [cardNumber, setCardNumber] = useState("");
+  const [cvv, setCvv] = useState("");
 
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -61,6 +62,28 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       .trim();
   }
 
+  function formatCvv(value: string) {
+    return value.replace(/\D/g, "").slice(0, 4);
+  }
+
+  function getCardPlaceholder() {
+    if (cardBrand === "VISA") return "4111 1111 1111 1111";
+    if (cardBrand === "MASTERCARD") return "5111 1111 1111 1118";
+    return "4111 1111 1111 1111";
+  }
+
+  function getBrandValidationMessage() {
+    if (cardBrand === "VISA") {
+      return "La tarjeta Visa debe iniciar por 4";
+    }
+
+    if (cardBrand === "MASTERCARD") {
+      return "La tarjeta Mastercard debe iniciar entre 51-55 o 2221-2720";
+    }
+
+    return "";
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -79,12 +102,18 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       return;
     }
 
-    if (!isValidCardForBrand(cardNumber, cardBrand)) {
-      setMessage(
-        cardBrand === "VISA"
-          ? "La tarjeta Visa debe iniciar por 4"
-          : "La tarjeta Mastercard debe iniciar entre 51-55 o 2221-2720",
-      );
+    if (cardBrand !== "NU" && !isValidCardForBrand(cardNumber, cardBrand)) {
+      setMessage(getBrandValidationMessage());
+      return;
+    }
+
+    if (cardBrand === "NU" && !cvv.trim()) {
+      setMessage("Ingrese el CVV para pagar con Nu");
+      return;
+    }
+
+    if (cardBrand === "NU" && !/^\d{3,4}$/.test(cvv)) {
+      setMessage("El CVV debe tener 3 o 4 dígitos");
       return;
     }
 
@@ -100,7 +129,9 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       await createPayment({
         externalRef: `event-${eventId}-ticket-${selectedId}-${Date.now()}`,
         idempotencyKey,
+        provider: cardBrand,
         cardNumber,
+        cvv: cardBrand === "NU" ? cvv : undefined,
         amount: totalAmount,
       });
 
@@ -112,10 +143,11 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       setMessage("Pago aprobado y compra realizada correctamente");
       setQuantity(1);
       setCardNumber("");
+      setCvv("");
 
       await loadTickets();
 
-      router.push(`/me/purchases/${result.purchase.id}`);
+      router.push("/me/purchases");
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -177,11 +209,15 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
               Tipo de tarjeta
               <select
                 value={cardBrand}
-                onChange={(e) => setCardBrand(e.target.value as CardBrand)}
+                onChange={(e) => {
+                  setCardBrand(e.target.value as CardBrand);
+                  setCvv("");
+                }}
                 className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
               >
                 <option value="VISA">Visa</option>
                 <option value="MASTERCARD">Mastercard</option>
+                <option value="NU">Nu</option>
               </select>
             </label>
 
@@ -190,16 +226,26 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
               <input
                 type="text"
                 inputMode="numeric"
-                placeholder={
-                  cardBrand === "VISA"
-                    ? "4111 1111 1111 1111"
-                    : "5555 5555 5555 4444"
-                }
+                placeholder={getCardPlaceholder()}
                 value={cardNumber}
                 onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                 className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
               />
             </label>
+
+            {cardBrand === "NU" && (
+              <label className="mt-3 block text-sm font-medium text-neutral-700">
+                CVV
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="890"
+                  value={cvv}
+                  onChange={(e) => setCvv(formatCvv(e.target.value))}
+                  className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
+                />
+              </label>
+            )}
 
             <p className="mt-3 text-sm text-neutral-600">
               Total a pagar:{" "}

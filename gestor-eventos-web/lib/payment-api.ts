@@ -43,18 +43,20 @@ function getErrorMessage(body: unknown) {
       return data.message.join(", ");
     }
 
-    return data.message || data.error || data.detail || JSON.stringify(data);
+    return data.reason || data.message || data.error || data.detail || JSON.stringify(data);
   }
 
   return String(body);
 }
 
-export type CardBrand = "VISA" | "MASTERCARD";
+export type CardBrand = "VISA" | "MASTERCARD" | "NU";
 
 export type CreatePaymentPayload = {
   externalRef: string;
   idempotencyKey: string;
+  provider: CardBrand;
   cardNumber: string;
+  cvv?: string;
   amount: number;
 };
 
@@ -69,6 +71,10 @@ export type PaymentResponse = {
     cardLastFour: string;
     amount: number;
     status: "NO_LIQUIDADO" | "LIQUIDADO" | "RECHAZADO";
+    providerResponse?: {
+      approved: boolean;
+      reason?: string;
+    };
     createdAt: string;
     updatedAt: string;
   };
@@ -76,6 +82,9 @@ export type PaymentResponse = {
 
 export async function createPayment(body: CreatePaymentPayload) {
   const PAYMENT_API = requirePaymentApiUrl();
+
+  const cleanCardNumber = body.cardNumber.replace(/\s/g, "");
+  const cleanCvv = body.cvv?.replace(/\s/g, "");
 
   const res = await fetch(`${PAYMENT_API}/payments`, {
     method: "POST",
@@ -86,7 +95,9 @@ export async function createPayment(body: CreatePaymentPayload) {
       companyId: requireCompanyId(),
       externalRef: body.externalRef,
       idempotencyKey: body.idempotencyKey,
-      cardNumber: body.cardNumber.replace(/\s/g, ""),
+      provider: body.provider,
+      cardNumber: cleanCardNumber,
+      cvv: body.provider === "NU" ? cleanCvv : undefined,
       amount: body.amount,
     }),
   });
@@ -102,6 +113,10 @@ export async function createPayment(body: CreatePaymentPayload) {
 
 export function isValidCardForBrand(cardNumber: string, brand: CardBrand) {
   const cleanCard = cardNumber.replace(/\s/g, "");
+
+  if (brand === "NU") {
+    return /^\d{13,19}$/.test(cleanCard);
+  }
 
   if (brand === "VISA") {
     return /^4/.test(cleanCard);
