@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PurchaseStatus } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { PaymentEventsGateway } from '@/payment-events/payment-events.gateway';
+import { PaymentEventsService } from '@/payment-events/payment-events.service';
 import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
 
 const ticketPurchaseInclude = {
@@ -24,12 +26,29 @@ const ticketPurchaseInclude = {
   },
 };
 
+type GatewayPaymentResponse = {
+  payment?: {
+    id?: string;
+    status?: string;
+    providerResponse?: {
+      approved?: boolean;
+      reason?: string;
+      code?: string;
+      message?: string;
+    };
+  };
+};
+
 @Injectable()
 export class TicketPurchasesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paymentEventsGateway: PaymentEventsGateway,
+    private readonly paymentEventsService: PaymentEventsService,
+  ) { }
 
   async create(userId: string, dto: CreateTicketPurchaseDto) {
-    const { eventTicketId, quantity } = dto;
+    const { eventTicketId, quantity, provider, cardNumber, cvv } = dto;
 
     const eventTicket = await this.prisma.eventTicket.findUnique({
       where: { id: eventTicketId },
@@ -75,13 +94,75 @@ export class TicketPurchasesService {
     }
 
     if (quantity > available) {
-      throw new BadRequestException(
-        'No hay suficientes boletas disponibles',
-      );
+      throw new BadRequestException('No hay suficientes boletas disponibles');
     }
 
     const unitPrice = eventTicket.price;
     const totalPrice = unitPrice * quantity;
+    const externalRef = `event-${eventTicket.eventId}-ticket-${eventTicketId}-${Date.now()}`;
+    const idempotencyKey = `${userId}-${eventTicketId}-${Date.now()}`;
+
+    this.paymentEventsGateway.emitPaymentStatus({
+      status: 'PAYMENT_REQUEST_SENT',
+      message: 'Enviando petición a la pasarela de pagos...',
+      data: {
+        eventTicketId,
+        provider,
+        amount: totalPrice,
+      },
+    });
+
+    const paymentResult = await this.sendPaymentToGateway({
+      companyId:
+        process.env.PAYMENT_COMPANY_ID ||
+        '550e8400-e29b-41d4-a716-446655440000',
+      externalRef,
+      idempotencyKey,
+      provider,
+      cardNumber,
+      cvv,
+      amount: totalPrice,
+    });
+
+    this.paymentEventsGateway.emitPaymentStatus({
+      status: 'PAYMENT_GATEWAY_RESPONSE_RECEIVED',
+      message: 'Respuesta recibida desde la pasarela de pagos.',
+      data: paymentResult,
+    });
+
+    const paymentWasRejected =
+      paymentResult.payment?.status === 'RECHAZADO' ||
+      paymentResult.payment?.providerResponse?.approved === false;
+
+    if (paymentWasRejected) {
+      const technicalCode =
+        paymentResult.payment?.providerResponse?.code ||
+        paymentResult.payment?.providerResponse?.reason ||
+        'PAYMENT_REJECTED';
+
+      await this.paymentEventsService.publish('payment.result.created', {
+        eventType: 'PAYMENT_FAILED',
+        userId,
+        eventTicketId,
+        provider,
+        technicalCode,
+        technicalMessage:
+          paymentResult.payment?.providerResponse?.message ||
+          paymentResult.payment?.providerResponse?.reason ||
+          'El pago fue rechazado por la pasarela',
+        eventName: eventTicket.event.name,
+        ticketTypeName: eventTicket.ticketType.name,
+        amount: totalPrice,
+      });
+
+      return {
+        message:
+          paymentResult.payment?.providerResponse?.reason ||
+          'Compra rechazada por la pasarela de pagos',
+        payment: paymentResult.payment,
+        purchase: null,
+      };
+    }
 
     const purchase = await this.prisma.$transaction(async (tx) => {
       const createdPurchase = await tx.ticketPurchase.create({
@@ -109,10 +190,73 @@ export class TicketPurchasesService {
       return createdPurchase;
     });
 
+    await this.paymentEventsService.publish('payment.result.created', {
+      eventType: 'PAYMENT_SUCCESS',
+      purchaseId: purchase.id,
+      userId,
+      eventTicketId,
+      provider,
+      eventName: eventTicket.event.name,
+      ticketTypeName: eventTicket.ticketType.name,
+      quantity,
+      amount: totalPrice,
+    });
+
     return {
       message: 'Compra realizada correctamente',
       purchase,
+      payment: paymentResult.payment,
     };
+  }
+
+  private async sendPaymentToGateway(payload: {
+    companyId: string;
+    externalRef: string;
+    idempotencyKey: string;
+    provider: 'VISA' | 'MASTERCARD' | 'NU';
+    cardNumber: string;
+    cvv?: string;
+    amount: number;
+  }): Promise<GatewayPaymentResponse> {
+    const gatewayUrl =
+      process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3001';
+
+    try {
+      const response = await fetch(`${gatewayUrl}/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as GatewayPaymentResponse;
+
+      if (!response.ok) {
+        throw new BadRequestException(
+          data?.payment?.providerResponse?.message ||
+          data?.payment?.providerResponse?.reason ||
+          'La pasarela de pagos rechazó la solicitud',
+        );
+      }
+
+      return data;
+    } catch (error) {
+      await this.paymentEventsService.publish('payment.result.created', {
+        eventType: 'PAYMENT_TIMEOUT',
+        provider: payload.provider,
+        technicalCode: 'NETWORK_TIMEOUT',
+        technicalMessage:
+          error instanceof Error
+            ? error.message
+            : 'No fue posible conectar con la pasarela de pagos',
+        amount: payload.amount,
+      });
+
+      throw new BadRequestException(
+        'No fue posible conectar correctamente con la pasarela de pagos',
+      );
+    }
   }
 
   async findMine(userId: string) {

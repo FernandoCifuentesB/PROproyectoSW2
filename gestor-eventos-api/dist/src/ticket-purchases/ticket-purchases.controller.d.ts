@@ -12,6 +12,19 @@ export declare class TicketPurchasesController {
     constructor(ticketPurchasesService: TicketPurchasesService);
     create(req: AuthRequest, dto: CreateTicketPurchaseDto): Promise<{
         message: string;
+        payment: {
+            id?: string;
+            status?: string;
+            providerResponse?: {
+                approved?: boolean;
+                reason?: string;
+                code?: string;
+                message?: string;
+            };
+        } | undefined;
+        purchase: null;
+    } | {
+        message: string;
         purchase: {
             user: {
                 id: string;
@@ -74,6 +87,16 @@ export declare class TicketPurchasesController {
             totalPrice: number;
             status: import("@prisma/client").$Enums.PurchaseStatus;
         };
+        payment: {
+            id?: string;
+            status?: string;
+            providerResponse?: {
+                approved?: boolean;
+                reason?: string;
+                code?: string;
+                message?: string;
+            };
+        } | undefined;
     }>;
     getEventReport(eventId: string): Promise<{
         event: {

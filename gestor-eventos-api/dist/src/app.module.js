@@ -10,6 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const cache_manager_1 = require("@nestjs/cache-manager");
 const config_1 = require("@nestjs/config");
+const payment_events_module_1 = require("./payment-events/payment-events.module");
 const prisma_module_1 = require("./prisma/prisma.module");
 const categories_module_1 = require("./categories/categories.module");
 const events_module_1 = require("./events/events.module");
@@ -42,7 +43,7 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             ticket_types_module_1.TicketTypesModule,
             event_tickets_module_1.EventTicketsModule,
-            ticket_purchases_module_1.TicketPurchasesModule,
+            ticket_purchases_module_1.TicketPurchasesModule, payment_events_module_1.PaymentEventsModule
         ],
     })
 ], AppModule);

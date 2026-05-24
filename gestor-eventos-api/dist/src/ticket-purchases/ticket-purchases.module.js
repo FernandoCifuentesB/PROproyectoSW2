@@ -10,6 +10,7 @@ exports.TicketPurchasesModule = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_module_1 = require("../prisma/prisma.module");
 const events_module_1 = require("../events/events.module");
+const payment_events_module_1 = require("../payment-events/payment-events.module");
 const ticket_purchases_controller_1 = require("./ticket-purchases.controller");
 const ticket_purchases_service_1 = require("./ticket-purchases.service");
 let TicketPurchasesModule = class TicketPurchasesModule {
@@ -17,7 +18,7 @@ let TicketPurchasesModule = class TicketPurchasesModule {
 exports.TicketPurchasesModule = TicketPurchasesModule;
 exports.TicketPurchasesModule = TicketPurchasesModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, events_module_1.EventsModule],
+        imports: [prisma_module_1.PrismaModule, events_module_1.EventsModule, payment_events_module_1.PaymentEventsModule],
         controllers: [ticket_purchases_controller_1.TicketPurchasesController],
         providers: [ticket_purchases_service_1.TicketPurchasesService],
     })
