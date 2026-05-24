@@ -2,19 +2,28 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { io, Socket } from "socket.io-client";
 import { getEventTicketsPublic, createTicketPurchase } from "@/lib/ticket-api";
 import { EventTicket } from "@/lib/types";
 import { formatCop } from "@/lib/tickets";
 import { useAuth } from "@/lib/auth";
-import {
-  CardBrand,
-  createPayment,
-  isValidCardForBrand,
-} from "@/lib/payment-api";
+import { CardBrand, isValidCardForBrand } from "@/lib/payment-api";
 
 type Props = {
   eventId: string;
   canBuy: boolean;
+};
+
+type PaymentSocketStatus =
+  | "PAYMENT_REQUEST_SENT"
+  | "PAYMENT_GATEWAY_RESPONSE_RECEIVED"
+  | "PAYMENT_AI_ANALYSIS_COMPLETED";
+
+type PaymentSocketEvent = {
+  purchaseId?: string;
+  status: PaymentSocketStatus;
+  message: string;
+  data?: unknown;
 };
 
 export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
@@ -30,11 +39,35 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const [cvv, setCvv] = useState("");
 
   const [message, setMessage] = useState("");
+  const [paymentStatuses, setPaymentStatuses] = useState<PaymentSocketEvent[]>(
+    [],
+  );
+
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadTickets();
   }, [eventId]);
+
+  useEffect(() => {
+    const socketUrl =
+      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
+
+    const socket: Socket = io(socketUrl, {
+      transports: ["websocket"],
+    });
+
+    socket.on("payment-status", (event: PaymentSocketEvent) => {
+      setPaymentStatuses((currentStatuses) => [
+        ...currentStatuses,
+        event,
+      ]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   async function loadTickets() {
     try {
@@ -119,46 +152,23 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
     setSubmitting(true);
     setMessage("");
+    setPaymentStatuses([]);
 
     try {
-      const idempotencyKey =
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`;
-      console.log("PAYMENT REQUEST FRONT:", {
+      const result = await createTicketPurchase({
+        eventTicketId: selectedId,
+        quantity,
         provider: cardBrand,
-        cardNumber,
-        amount: totalAmount,
-      });
-      const paymentResult = await createPayment({
-        externalRef: `event-${eventId}-ticket-${selectedId}-${Date.now()}`,
-        idempotencyKey,
-        provider: cardBrand,
-        cardNumber,
+        cardNumber: cardNumber.replace(/\s/g, ""),
         cvv: cardBrand === "NU" ? cvv : undefined,
-        amount: totalAmount,
       });
 
-      const paymentWasRejected =
-        paymentResult.payment.status === "RECHAZADO" ||
-        paymentResult.payment.providerResponse?.approved === false;
-
-      if (paymentWasRejected) {
-        setMessage(
-          paymentResult.payment.providerResponse?.reason
-            ? `Compra rechazada: ${paymentResult.payment.providerResponse.reason}`
-            : "Compra rechazada por la pasarela de pagos",
-        );
-
+      if (!result.purchase) {
+        setMessage(result.message || "Compra rechazada por la pasarela de pagos");
         return;
       }
 
-      await createTicketPurchase({
-        eventTicketId: selectedId,
-        quantity,
-      });
-
-      setMessage("Compra aceptada");
+      setMessage(result.message || "Compra aceptada");
 
       setQuantity(1);
       setCardNumber("");
@@ -172,7 +182,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
           : "No fue posible completar el pago";
 
       const safeMessage = errorMessage.includes("<!DOCTYPE html>")
-        ? "No se pudo conectar correctamente con la pasarela de pagos. Revisa NEXT_PUBLIC_PAYMENT_API_URL."
+        ? "No se pudo conectar correctamente con el backend o la pasarela de pagos."
         : errorMessage;
 
       setMessage(safeMessage);
@@ -277,6 +287,39 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
             </p>
           </div>
 
+          {paymentStatuses.length > 0 && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <h3 className="text-sm font-semibold text-blue-950">
+                Estado del proceso
+              </h3>
+
+              <ul className="mt-2 space-y-2">
+                {paymentStatuses.map((statusEvent, index) => (
+                  <li key={`${statusEvent.status}-${index}`}>
+                    <p className="text-sm text-blue-900">
+                      {statusEvent.message}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {message && (
+            <p
+              className={`rounded-xl px-4 py-3 text-sm ${
+                message.toLowerCase().includes("rechazada") ||
+                message.toLowerCase().includes("error") ||
+                message.toLowerCase().includes("no fue posible") ||
+                message.toLowerCase().includes("no se pudo")
+                  ? "bg-red-50 text-red-700"
+                  : "bg-green-50 text-green-700"
+              }`}
+            >
+              {message}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={submitting}
@@ -284,12 +327,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
           >
             {submitting ? "Procesando pago..." : "Pagar y comprar"}
           </button>
-
-          {message && (
-            <p className="rounded-xl bg-neutral-100 px-3 py-2 text-sm text-neutral-700">
-              {message}
-            </p>
-          )}
         </form>
       )}
     </section>

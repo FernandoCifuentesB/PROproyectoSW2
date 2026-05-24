@@ -22,14 +22,20 @@ export type UpdateEventTicketPayload = {
   isActive?: boolean;
 };
 
+export type PaymentProvider = "VISA" | "MASTERCARD" | "NU";
+
 export type CreatePurchasePayload = {
   eventTicketId: string;
   quantity: number;
+  provider: PaymentProvider;
+  cardNumber: string;
+  cvv?: string;
 };
 
 export type CreateTicketPurchaseResponse = {
   message: string;
-  purchase: TicketPurchase;
+  purchase: TicketPurchase | null;
+  payment?: unknown;
 };
 
 export async function getTicketTypes() {
@@ -84,23 +90,8 @@ export async function deleteEventTicket(
   return apiDelete(`/events/${eventId}/tickets/${eventTicketId}`);
 }
 
-export async function createTicketPurchase(body: CreatePurchasePayload) {
-  const data = await apiPost<CreateTicketPurchaseResponse | TicketPurchase>(
-    "/ticket-purchases",
-    body,
-  );
-
-  if ("purchase" in data) {
-    return {
-      message: data.message || "Compra realizada correctamente",
-      purchase: data.purchase,
-    };
-  }
-
-  return {
-    message: "Compra realizada correctamente",
-    purchase: data,
-  };
+export async function createTicketPurchase(payload: CreatePurchasePayload) {
+  return apiPost<CreateTicketPurchaseResponse>("/ticket-purchases", payload);
 }
 
 export async function getMyTicketPurchases() {

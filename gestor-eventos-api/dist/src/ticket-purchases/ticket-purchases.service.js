@@ -13,6 +13,8 @@ exports.TicketPurchasesService = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
+const payment_events_gateway_1 = require("../payment-events/payment-events.gateway");
+const payment_events_service_1 = require("../payment-events/payment-events.service");
 const ticketPurchaseInclude = {
     event: true,
     eventTicket: {
@@ -31,11 +33,15 @@ const ticketPurchaseInclude = {
 };
 let TicketPurchasesService = class TicketPurchasesService {
     prisma;
-    constructor(prisma) {
+    paymentEventsGateway;
+    paymentEventsService;
+    constructor(prisma, paymentEventsGateway, paymentEventsService) {
         this.prisma = prisma;
+        this.paymentEventsGateway = paymentEventsGateway;
+        this.paymentEventsService = paymentEventsService;
     }
     async create(userId, dto) {
-        const { eventTicketId, quantity } = dto;
+        const { eventTicketId, quantity, provider, cardNumber, cvv } = dto;
         const eventTicket = await this.prisma.eventTicket.findUnique({
             where: { id: eventTicketId },
             include: {
@@ -72,6 +78,58 @@ let TicketPurchasesService = class TicketPurchasesService {
         }
         const unitPrice = eventTicket.price;
         const totalPrice = unitPrice * quantity;
+        const externalRef = `event-${eventTicket.eventId}-ticket-${eventTicketId}-${Date.now()}`;
+        const idempotencyKey = `${userId}-${eventTicketId}-${Date.now()}`;
+        this.paymentEventsGateway.emitPaymentStatus({
+            status: 'PAYMENT_REQUEST_SENT',
+            message: 'Enviando petición a la pasarela de pagos...',
+            data: {
+                eventTicketId,
+                provider,
+                amount: totalPrice,
+            },
+        });
+        const paymentResult = await this.sendPaymentToGateway({
+            companyId: process.env.PAYMENT_COMPANY_ID ||
+                '550e8400-e29b-41d4-a716-446655440000',
+            externalRef,
+            idempotencyKey,
+            provider,
+            cardNumber,
+            cvv,
+            amount: totalPrice,
+        });
+        this.paymentEventsGateway.emitPaymentStatus({
+            status: 'PAYMENT_GATEWAY_RESPONSE_RECEIVED',
+            message: 'Respuesta recibida desde la pasarela de pagos.',
+            data: paymentResult,
+        });
+        const paymentWasRejected = paymentResult.payment?.status === 'RECHAZADO' ||
+            paymentResult.payment?.providerResponse?.approved === false;
+        if (paymentWasRejected) {
+            const technicalCode = paymentResult.payment?.providerResponse?.code ||
+                paymentResult.payment?.providerResponse?.reason ||
+                'PAYMENT_REJECTED';
+            await this.paymentEventsService.publish('payment.result.created', {
+                eventType: 'PAYMENT_FAILED',
+                userId,
+                eventTicketId,
+                provider,
+                technicalCode,
+                technicalMessage: paymentResult.payment?.providerResponse?.message ||
+                    paymentResult.payment?.providerResponse?.reason ||
+                    'El pago fue rechazado por la pasarela',
+                eventName: eventTicket.event.name,
+                ticketTypeName: eventTicket.ticketType.name,
+                amount: totalPrice,
+            });
+            return {
+                message: paymentResult.payment?.providerResponse?.reason ||
+                    'Compra rechazada por la pasarela de pagos',
+                payment: paymentResult.payment,
+                purchase: null,
+            };
+        }
         const purchase = await this.prisma.$transaction(async (tx) => {
             const createdPurchase = await tx.ticketPurchase.create({
                 data: {
@@ -95,10 +153,53 @@ let TicketPurchasesService = class TicketPurchasesService {
             });
             return createdPurchase;
         });
+        await this.paymentEventsService.publish('payment.result.created', {
+            eventType: 'PAYMENT_SUCCESS',
+            purchaseId: purchase.id,
+            userId,
+            eventTicketId,
+            provider,
+            eventName: eventTicket.event.name,
+            ticketTypeName: eventTicket.ticketType.name,
+            quantity,
+            amount: totalPrice,
+        });
         return {
             message: 'Compra realizada correctamente',
             purchase,
+            payment: paymentResult.payment,
         };
+    }
+    async sendPaymentToGateway(payload) {
+        const gatewayUrl = process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3001';
+        try {
+            const response = await fetch(`${gatewayUrl}/payments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = (await response.json());
+            if (!response.ok) {
+                throw new common_1.BadRequestException(data?.payment?.providerResponse?.message ||
+                    data?.payment?.providerResponse?.reason ||
+                    'La pasarela de pagos rechazó la solicitud');
+            }
+            return data;
+        }
+        catch (error) {
+            await this.paymentEventsService.publish('payment.result.created', {
+                eventType: 'PAYMENT_TIMEOUT',
+                provider: payload.provider,
+                technicalCode: 'NETWORK_TIMEOUT',
+                technicalMessage: error instanceof Error
+                    ? error.message
+                    : 'No fue posible conectar con la pasarela de pagos',
+                amount: payload.amount,
+            });
+            throw new common_1.BadRequestException('No fue posible conectar correctamente con la pasarela de pagos');
+        }
     }
     async findMine(userId) {
         return this.prisma.ticketPurchase.findMany({
@@ -192,6 +293,8 @@ let TicketPurchasesService = class TicketPurchasesService {
 exports.TicketPurchasesService = TicketPurchasesService;
 exports.TicketPurchasesService = TicketPurchasesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        payment_events_gateway_1.PaymentEventsGateway,
+        payment_events_service_1.PaymentEventsService])
 ], TicketPurchasesService);
 //# sourceMappingURL=ticket-purchases.service.js.map

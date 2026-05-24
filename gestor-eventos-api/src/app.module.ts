@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { CacheModule } from "@nestjs/cache-manager";
 import { ConfigModule } from "@nestjs/config";
-
+import { PaymentEventsModule } from './payment-events/payment-events.module';
 import { PrismaModule } from "./prisma/prisma.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { EventsModule } from "./events/events.module";
@@ -31,7 +31,7 @@ import { TicketPurchasesModule } from "@/ticket-purchases/ticket-purchases.modul
     UsersModule,
     TicketTypesModule,
     EventTicketsModule,
-    TicketPurchasesModule,
+    TicketPurchasesModule,PaymentEventsModule
   ],
 })
 export class AppModule {}

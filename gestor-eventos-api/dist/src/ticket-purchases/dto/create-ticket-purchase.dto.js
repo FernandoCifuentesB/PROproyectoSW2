@@ -14,6 +14,9 @@ const class_validator_1 = require("class-validator");
 class CreateTicketPurchaseDto {
     eventTicketId;
     quantity;
+    provider;
+    cardNumber;
+    cvv;
 }
 exports.CreateTicketPurchaseDto = CreateTicketPurchaseDto;
 __decorate([
@@ -25,4 +28,19 @@ __decorate([
     (0, class_validator_1.IsPositive)(),
     __metadata("design:type", Number)
 ], CreateTicketPurchaseDto.prototype, "quantity", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(['VISA', 'MASTERCARD', 'NU']),
+    __metadata("design:type", String)
+], CreateTicketPurchaseDto.prototype, "provider", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateTicketPurchaseDto.prototype, "cardNumber", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateTicketPurchaseDto.prototype, "cvv", void 0);
 //# sourceMappingURL=create-ticket-purchase.dto.js.map

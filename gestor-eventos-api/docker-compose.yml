@@ -31,5 +31,15 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/gestor_eventos?schema=public
     command: npm run start:dev
 
+  rabbitmq:
+      image: rabbitmq:3-management
+      container_name: gestor_eventos_rabbitmq
+      restart: always
+      ports:
+        - "5672:5672"
+        - "15672:15672"
+      environment:
+        RABBITMQ_DEFAULT_USER: guest
+        RABBITMQ_DEFAULT_PASS: guest
 volumes:
   postgres_data:
