@@ -171,7 +171,7 @@ let TicketPurchasesService = class TicketPurchasesService {
         };
     }
     async sendPaymentToGateway(payload) {
-        const gatewayUrl = process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3001';
+        const gatewayUrl = process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3010';
         try {
             const response = await fetch(`${gatewayUrl}/payments`, {
                 method: 'POST',
@@ -180,11 +180,19 @@ let TicketPurchasesService = class TicketPurchasesService {
                 },
                 body: JSON.stringify(payload),
             });
-            const data = (await response.json());
-            if (!response.ok) {
-                throw new common_1.BadRequestException(data?.payment?.providerResponse?.message ||
-                    data?.payment?.providerResponse?.reason ||
-                    'La pasarela de pagos rechazó la solicitud');
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            }
+            catch {
+                throw new Error(`La pasarela respondió un formato no válido: ${responseText.slice(0, 120)}`);
+            }
+            const hasPaymentResponse = Boolean(data.payment);
+            if (!response.ok && !hasPaymentResponse) {
+                throw new Error(data.message ||
+                    data.error ||
+                    'La pasarela respondió con error sin detalle de pago');
             }
             return data;
         }

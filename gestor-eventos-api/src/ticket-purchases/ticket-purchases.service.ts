@@ -222,7 +222,7 @@ export class TicketPurchasesService {
     amount: number;
   }): Promise<GatewayPaymentResponse> {
     const gatewayUrl =
-      process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3001';
+      process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3010';
 
     try {
       const response = await fetch(`${gatewayUrl}/payments`, {
@@ -233,13 +233,28 @@ export class TicketPurchasesService {
         body: JSON.stringify(payload),
       });
 
-      const data = (await response.json()) as GatewayPaymentResponse;
+      const responseText = await response.text();
 
-      if (!response.ok) {
-        throw new BadRequestException(
-          data?.payment?.providerResponse?.message ||
-          data?.payment?.providerResponse?.reason ||
-          'La pasarela de pagos rechazó la solicitud',
+      let data: GatewayPaymentResponse;
+
+      try {
+        data = JSON.parse(responseText) as GatewayPaymentResponse;
+      } catch {
+        throw new Error(
+          `La pasarela respondió un formato no válido: ${responseText.slice(
+            0,
+            120,
+          )}`,
+        );
+      }
+
+      const hasPaymentResponse = Boolean(data.payment);
+
+      if (!response.ok && !hasPaymentResponse) {
+        throw new Error(
+          data.message ||
+          data.error ||
+          'La pasarela respondió con error sin detalle de pago',
         );
       }
 
