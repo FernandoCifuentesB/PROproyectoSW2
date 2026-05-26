@@ -39,9 +39,14 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const [cvv, setCvv] = useState("");
 
   const [message, setMessage] = useState("");
+  const [messageStatus, setMessageStatus] = useState<
+    "success" | "error" | null
+  >(null);
+
   const [paymentStatuses, setPaymentStatuses] = useState<PaymentSocketEvent[]>(
     [],
   );
+
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -58,11 +63,16 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     });
 
     socket.on("payment-status", (event: PaymentSocketEvent) => {
-      setPaymentStatuses((currentStatuses) => [...currentStatuses, event]);
-
-      if (event.status === "PAYMENT_AI_ANALYSIS_COMPLETED") {
-        setMessage(event.message);
+      if (event.status !== "PAYMENT_AI_ANALYSIS_COMPLETED") {
+        setPaymentStatuses((currentStatuses) => [...currentStatuses, event]);
+        return;
       }
+
+      setMessage(event.message);
+
+      const aiStatus = (event.data as { status?: string } | undefined)?.status;
+
+      setMessageStatus(aiStatus === "SUCCESS" ? "success" : "error");
     });
 
     return () => {
@@ -153,6 +163,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
     setSubmitting(true);
     setMessage("");
+    setMessageStatus(null);
     setPaymentStatuses([]);
 
     try {
@@ -165,17 +176,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       });
 
       if (!result.purchase) {
-        setMessage(
-          result.message ||
-          "Compra rechazada por la pasarela de pagos. Estamos generando una respuesta personalizada...",
-        );
         return;
       }
+      return;
 
-      setMessage(
-        result.message ||
-        "Compra aceptada. Estamos generando tu confirmación inteligente...",
-      );
+      setMessage("Compra aceptada. Estamos generando tu confirmación inteligente...");
+      setMessageStatus("success");
 
       setQuantity(1);
       setCardNumber("");
@@ -301,44 +307,22 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
               </h3>
 
               <ul className="mt-2 space-y-2">
-                {paymentStatuses.map((statusEvent, index) => {
-                  const isAiResult =
-                    statusEvent.status === "PAYMENT_AI_ANALYSIS_COMPLETED";
-
-                  return (
-                    <li
-                      key={`${statusEvent.status}-${index}`}
-                      className={
-                        isAiResult
-                          ? "rounded-lg bg-white px-3 py-2 shadow-sm"
-                          : ""
-                      }
-                    >
-                      <p
-                        className={
-                          isAiResult
-                            ? "text-sm font-semibold text-blue-950"
-                            : "text-sm text-blue-900"
-                        }
-                      >
-                        {isAiResult ? "Resultado inteligente: " : ""}
-                        {statusEvent.message}
-                      </p>
-                    </li>
-                  );
-                })}
+                {paymentStatuses.map((statusEvent, index) => (
+                  <li key={`${statusEvent.status}-${index}`}>
+                    <p className="text-sm text-blue-900">
+                      {statusEvent.message}
+                    </p>
+                  </li>
+                ))}
               </ul>
             </div>
           )}
 
           {message && (
             <p
-              className={`rounded-xl px-4 py-3 text-sm ${message.toLowerCase().includes("rechazada") ||
-                message.toLowerCase().includes("error") ||
-                message.toLowerCase().includes("no fue posible") ||
-                message.toLowerCase().includes("no se pudo")
-                ? "bg-red-50 text-red-700"
-                : "bg-green-50 text-green-700"
+              className={`rounded-xl px-4 py-3 text-sm ${messageStatus === "success"
+                ? "bg-green-50 text-green-700"
+                : "bg-red-50 text-red-700"
                 }`}
             >
               {message}
