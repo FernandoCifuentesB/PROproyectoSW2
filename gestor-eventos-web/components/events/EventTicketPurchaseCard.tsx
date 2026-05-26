@@ -26,6 +26,31 @@ type PaymentSocketEvent = {
   data?: unknown;
 };
 
+type PaymentFlowStep =
+  | "PAYMENT_REQUEST_SENT"
+  | "PAYMENT_GATEWAY_RESPONSE_RECEIVED"
+  | "PAYMENT_AI_ANALYSIS_COMPLETED";
+
+type PaymentFlowResult = "success" | "error" | null;
+
+const PAYMENT_FLOW_STEPS: {
+  key: PaymentFlowStep;
+  label: string;
+}[] = [
+    {
+      key: "PAYMENT_REQUEST_SENT",
+      label: "Enviando petición a la pasarela de pagos",
+    },
+    {
+      key: "PAYMENT_GATEWAY_RESPONSE_RECEIVED",
+      label: "Respuesta recibida desde la pasarela de pagos",
+    },
+    {
+      key: "PAYMENT_AI_ANALYSIS_COMPLETED",
+      label: "Análisis inteligente completado",
+    },
+  ];
+
 export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const router = useRouter();
   const { token } = useAuth();
@@ -43,9 +68,8 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     "success" | "error" | null
   >(null);
 
-  const [paymentStatuses, setPaymentStatuses] = useState<PaymentSocketEvent[]>(
-    [],
-  );
+  const [currentPaymentStatus, setCurrentPaymentStatus] =
+    useState<PaymentSocketEvent | null>(null);
 
 
   const [submitting, setSubmitting] = useState(false);
@@ -61,10 +85,9 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     const socket: Socket = io(socketUrl, {
       transports: ["websocket"],
     });
-
     socket.on("payment-status", (event: PaymentSocketEvent) => {
       if (event.status !== "PAYMENT_AI_ANALYSIS_COMPLETED") {
-        setPaymentStatuses((currentStatuses) => [...currentStatuses, event]);
+        setCurrentPaymentStatus(event);
         return;
       }
 
@@ -164,7 +187,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     setSubmitting(true);
     setMessage("");
     setMessageStatus(null);
-    setPaymentStatuses([]);
+    setCurrentPaymentStatus(null);
 
     try {
       const result = await createTicketPurchase({
@@ -180,14 +203,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       }
       return;
 
-      setMessage("Compra aceptada. Estamos generando tu confirmación inteligente...");
-      setMessageStatus("success");
-
-      setQuantity(1);
-      setCardNumber("");
-      setCvv("");
-
-      await loadTickets();
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -300,21 +315,15 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
             </p>
           </div>
 
-          {paymentStatuses.length > 0 && (
+          {currentPaymentStatus && (
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
               <h3 className="text-sm font-semibold text-blue-950">
                 Estado del proceso
               </h3>
 
-              <ul className="mt-2 space-y-2">
-                {paymentStatuses.map((statusEvent, index) => (
-                  <li key={`${statusEvent.status}-${index}`}>
-                    <p className="text-sm text-blue-900">
-                      {statusEvent.message}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+              <p className="mt-2 text-sm text-blue-900">
+                {currentPaymentStatus.message}
+              </p>
             </div>
           )}
 
