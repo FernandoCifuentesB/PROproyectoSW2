@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentEventsModule = void 0;
 const common_1 = require("@nestjs/common");
+const payment_ai_consumer_service_1 = require("./payment-ai-consumer.service");
 const payment_events_gateway_1 = require("./payment-events.gateway");
 const payment_events_service_1 = require("./payment-events.service");
 let PaymentEventsModule = class PaymentEventsModule {
@@ -15,7 +16,11 @@ let PaymentEventsModule = class PaymentEventsModule {
 exports.PaymentEventsModule = PaymentEventsModule;
 exports.PaymentEventsModule = PaymentEventsModule = __decorate([
     (0, common_1.Module)({
-        providers: [payment_events_gateway_1.PaymentEventsGateway, payment_events_service_1.PaymentEventsService],
+        providers: [
+            payment_events_gateway_1.PaymentEventsGateway,
+            payment_events_service_1.PaymentEventsService,
+            payment_ai_consumer_service_1.PaymentAiConsumerService,
+        ],
         exports: [payment_events_gateway_1.PaymentEventsGateway, payment_events_service_1.PaymentEventsService],
     })
 ], PaymentEventsModule);

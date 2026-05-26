@@ -49,28 +49,47 @@ let PaymentEventsService = PaymentEventsService_1 = class PaymentEventsService {
     channel;
     rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
     async publish(queue, payload) {
-        if (!this.channel) {
-            await this.connect();
-        }
-        await this.channel.assertQueue(queue, {
+        const channel = await this.getOrCreateChannel();
+        await channel.assertQueue(queue, {
             durable: true,
         });
-        this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(payload)), {
+        channel.sendToQueue(queue, Buffer.from(JSON.stringify(payload)), {
             persistent: true,
         });
+        this.logger.log(`Evento publicado en RabbitMQ: ${queue}`);
     }
-    async connect() {
+    async consume(queue, handler) {
+        const channel = await this.getOrCreateChannel();
+        await channel.assertQueue(queue, {
+            durable: true,
+        });
+        await channel.consume(queue, async (message) => {
+            if (!message)
+                return;
+            try {
+                const payload = JSON.parse(message.content.toString());
+                await handler(payload);
+                channel.ack(message);
+            }
+            catch (error) {
+                this.logger.error(`Error procesando evento de RabbitMQ: ${queue}`, error);
+                channel.nack(message, false, false);
+            }
+        });
+        this.logger.log(`Backend escuchando cola RabbitMQ: ${queue}`);
+    }
+    async getOrCreateChannel() {
+        if (this.channel) {
+            return this.channel;
+        }
         this.connection = await amqp.connect(this.rabbitUrl);
         this.channel = await this.connection.createChannel();
-        this.logger.log('RabbitMQ conectado correctamente');
+        this.logger.log('RabbitMQ conectado correctamente desde backend');
+        return this.channel;
     }
     async onModuleDestroy() {
-        if (this.channel) {
-            await this.channel.close();
-        }
-        if (this.connection) {
-            await this.connection.close();
-        }
+        await this.channel?.close();
+        await this.connection?.close();
     }
 };
 exports.PaymentEventsService = PaymentEventsService;
