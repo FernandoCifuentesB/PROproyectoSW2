@@ -160,14 +160,23 @@ Eres un agente inteligente de recuperación de pagos para una plataforma de even
 
 Genera UN mensaje nuevo, empático y persuasivo para un pago rechazado.
 
-Datos:
+Datos de la compra:
 - Evento: ${eventName}
 - Tipo de entrada: ${ticketTypeName}
 - Valor: ${amount}
-- Medio de pago: ${provider}
-- Código técnico interno: ${event.technicalCode || "PAYMENT_REJECTED"}
-- Detalle técnico interno: ${event.technicalMessage || "pago rechazado"}
-- Semilla de variación: ${randomSeed}
+- Medio de pago seleccionado: ${provider}
+
+Motivo real del rechazo:
+- Código interno: ${event.technicalCode || "PAYMENT_REJECTED"}
+- Motivo recibido desde la pasarela: ${event.technicalMessage || "El pago fue rechazado por la pasarela"
+      }
+
+Instrucción principal:
+El mensaje DEBE estar relacionado directamente con el motivo recibido desde la pasarela.
+Si el motivo dice que la tarjeta no fue encontrada, explica de forma amable que no se encontró o no se pudo validar esa tarjeta en el sistema del proveedor.
+Si el motivo habla de fondos insuficientes, explica que el saldo o cupo podría no ser suficiente.
+Si el motivo habla de CVV inválido, pide revisar el código de seguridad.
+Si el motivo es genérico, sugiere revisar los datos o intentar con otro medio de pago.
 
 Reglas:
 - Responde en español.
@@ -176,8 +185,12 @@ Reglas:
 - No uses comillas.
 - No uses listas.
 - No menciones que eres una IA.
-- Debe sonar empático.
-- Debe motivar al usuario a intentar de nuevo o usar otro medio de pago.
+- No digas "código interno".
+- No copies literalmente el error técnico.
+- Debe sonar humano, útil y empático.
+- Debe motivar al usuario a intentar nuevamente o usar otro medio de pago.
+- Genera una redacción diferente en cada ejecución.
+- Semilla de variación: ${randomSeed}
 `;
   }
 
@@ -208,6 +221,20 @@ Reglas:
 
     if (event.eventType === "PAYMENT_TIMEOUT") {
       return `Tuvimos una interrupción temporal al procesar el pago. Intenta nuevamente en unos minutos para completar tu compra. Ref ${uniqueReference}`;
+    }
+
+    const reason = event.technicalMessage?.toLowerCase() || "";
+
+    if (reason.includes("tarjeta no encontrada")) {
+      return `No encontramos esa tarjeta registrada con ${event.provider || "el proveedor seleccionado"}. Revisa el número ingresado o intenta con otro medio de pago para completar tu compra. Ref ${uniqueReference}`;
+    }
+
+    if (reason.includes("fondos") || reason.includes("saldo")) {
+      return `El pago no pudo completarse porque el saldo o cupo disponible podría no ser suficiente. Puedes intentar con otra tarjeta para finalizar tu compra. Ref ${uniqueReference}`;
+    }
+
+    if (reason.includes("cvv")) {
+      return `No pudimos validar el código de seguridad de la tarjeta. Revisa el CVV e intenta nuevamente para completar tu compra. Ref ${uniqueReference}`;
     }
 
     return `No pudimos completar el pago en este intento. Revisa los datos o prueba con otro medio de pago para asegurar tu entrada. Ref ${uniqueReference}`;

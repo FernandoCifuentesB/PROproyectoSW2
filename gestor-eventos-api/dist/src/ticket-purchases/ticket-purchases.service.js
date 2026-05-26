@@ -171,7 +171,7 @@ let TicketPurchasesService = class TicketPurchasesService {
         };
     }
     async sendPaymentToGateway(payload) {
-        const gatewayUrl = process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3001';
+        const gatewayUrl = process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3010';
         try {
             const response = await fetch(`${gatewayUrl}/payments`, {
                 method: 'POST',
@@ -180,11 +180,36 @@ let TicketPurchasesService = class TicketPurchasesService {
                 },
                 body: JSON.stringify(payload),
             });
-            const data = (await response.json());
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            }
+            catch {
+                throw new Error(`La pasarela respondió un formato no válido: ${responseText.slice(0, 120)}`);
+            }
+            const isGatewayBusinessRejection = !response.ok && Boolean(data.paymentId) && Boolean(data.reason);
+            if (isGatewayBusinessRejection) {
+                return {
+                    message: data.message || 'Pago rechazado por el proveedor de tarjeta',
+                    payment: {
+                        id: data.paymentId,
+                        status: 'RECHAZADO',
+                        provider: payload.provider,
+                        providerResponse: {
+                            approved: false,
+                            code: 'PAYMENT_REJECTED',
+                            reason: data.reason,
+                            message: data.message || data.reason,
+                        },
+                    },
+                };
+            }
             if (!response.ok) {
-                throw new common_1.BadRequestException(data?.payment?.providerResponse?.message ||
-                    data?.payment?.providerResponse?.reason ||
-                    'La pasarela de pagos rechazó la solicitud');
+                throw new Error(data.message ||
+                    data.error ||
+                    data.reason ||
+                    'La pasarela respondió con error sin detalle de pago');
             }
             return data;
         }

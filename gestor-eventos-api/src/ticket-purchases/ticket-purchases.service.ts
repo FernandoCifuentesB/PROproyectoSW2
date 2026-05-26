@@ -40,6 +40,8 @@ type GatewayPaymentResponse = {
   };
   message?: string;
   error?: string;
+  paymentId?: string;
+  reason?: string;
 };
 
 @Injectable()
@@ -222,7 +224,7 @@ export class TicketPurchasesService {
     amount: number;
   }): Promise<GatewayPaymentResponse> {
     const gatewayUrl =
-      process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3001';
+      process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3010';
 
     try {
       const response = await fetch(`${gatewayUrl}/payments`, {
@@ -233,13 +235,47 @@ export class TicketPurchasesService {
         body: JSON.stringify(payload),
       });
 
-      const data = (await response.json()) as GatewayPaymentResponse;
+      const responseText = await response.text();
+
+      let data: GatewayPaymentResponse;
+
+      try {
+        data = JSON.parse(responseText) as GatewayPaymentResponse;
+      } catch {
+        throw new Error(
+          `La pasarela respondió un formato no válido: ${responseText.slice(
+            0,
+            120,
+          )}`,
+        );
+      }
+
+      const isGatewayBusinessRejection =
+        !response.ok && Boolean(data.paymentId) && Boolean(data.reason);
+
+      if (isGatewayBusinessRejection) {
+        return {
+          message: data.message || 'Pago rechazado por el proveedor de tarjeta',
+          payment: {
+            id: data.paymentId,
+            status: 'RECHAZADO',
+            provider: payload.provider,
+            providerResponse: {
+              approved: false,
+              code: 'PAYMENT_REJECTED',
+              reason: data.reason,
+              message: data.message || data.reason,
+            },
+          },
+        };
+      }
 
       if (!response.ok) {
-        throw new BadRequestException(
-          data?.payment?.providerResponse?.message ||
-          data?.payment?.providerResponse?.reason ||
-          'La pasarela de pagos rechazó la solicitud',
+        throw new Error(
+          data.message ||
+          data.error ||
+          data.reason ||
+          'La pasarela respondió con error sin detalle de pago',
         );
       }
 
