@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { getEventTicketsPublic, createTicketPurchase } from "@/lib/ticket-api";
@@ -34,23 +34,31 @@ type PaymentFlowStep =
 type PaymentFlowResult = "success" | "error" | null;
 
 const PAYMENT_FLOW_STEPS: {
+
   key: PaymentFlowStep;
   label: string;
+  description: string;
 }[] = [
-  {
-    key: "PAYMENT_REQUEST_SENT",
-    label: "Enviando petición a la pasarela de pagos",
-  },
-  {
-    key: "PAYMENT_GATEWAY_RESPONSE_RECEIVED",
-    label: "Respuesta recibida desde la pasarela de pagos",
-  },
-  {
-    key: "PAYMENT_AI_ANALYSIS_COMPLETED",
-    label: "Análisis inteligente completado",
-  },
-];
-
+    {
+      key: "PAYMENT_REQUEST_SENT",
+      label: "Enviando solicitud segura a la pasarela",
+      description:
+        "Estamos preparando los datos de la compra y enviando la petición al servicio de pagos.",
+    },
+    {
+      key: "PAYMENT_GATEWAY_RESPONSE_RECEIVED",
+      label: "Validando respuesta del proveedor de pago",
+      description:
+        "La pasarela ya respondió y estamos revisando si el pago fue aprobado, rechazado o requiere análisis adicional.",
+    },
+    {
+      key: "PAYMENT_AI_ANALYSIS_COMPLETED",
+      label: "Generando respuesta inteligente personalizada",
+      description:
+        "El agente de IA está interpretando el resultado para mostrarte una respuesta clara y útil.",
+    },
+  ];
+const STEP_ANIMATION_DELAY = 700;
 export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const router = useRouter();
   const { token } = useAuth();
@@ -63,19 +71,27 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const [cardNumber, setCardNumber] = useState("");
   const [cvv, setCvv] = useState("");
 
-  const [paymentFlowStep, setPaymentFlowStep] =
-    useState<PaymentFlowStep | null>(null);
+  const [visibleStepIndex, setVisibleStepIndex] = useState(-1);
+  const [completedStepIndex, setCompletedStepIndex] = useState(-1);
+  const [failedStepIndex, setFailedStepIndex] = useState<number | null>(null);
 
   const [paymentFinalMessage, setPaymentFinalMessage] = useState("");
   const [paymentResult, setPaymentResult] = useState<PaymentFlowResult>(null);
   const [formMessage, setFormMessage] = useState("");
+
+  const animationTimeoutsRef = useRef<number[]>([]);
+  const finalAnimationStartedRef = useRef(false);
 
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadTickets();
   }, [eventId]);
-
+  useEffect(() => {
+    return () => {
+      clearPaymentAnimationTimeouts();
+    };
+  }, []);
   useEffect(() => {
     const socketUrl =
       process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
@@ -85,16 +101,18 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     });
 
     socket.on("payment-status", (event: PaymentSocketEvent) => {
-      setFormMessage("");
-      setPaymentFlowStep(event.status);
+      if (event.status === "PAYMENT_REQUEST_SENT") {
+        showRequestStep();
+        return;
+      }
+
+      if (event.status === "PAYMENT_GATEWAY_RESPONSE_RECEIVED") {
+        showGatewayStep();
+        return;
+      }
 
       if (event.status === "PAYMENT_AI_ANALYSIS_COMPLETED") {
-        setPaymentFinalMessage(event.message);
-
-        const aiStatus = (event.data as { status?: string } | undefined)
-          ?.status;
-
-        setPaymentResult(aiStatus === "SUCCESS" ? "success" : "error");
+        showFinalAnimatedResult(event);
       }
     });
 
@@ -121,13 +139,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     return selectedTicket.price * quantity;
   }, [selectedTicket, quantity]);
 
-  const currentStepIndex = useMemo(() => {
-    if (!paymentFlowStep) return -1;
 
-    return PAYMENT_FLOW_STEPS.findIndex(
-      (step) => step.key === paymentFlowStep,
-    );
-  }, [paymentFlowStep]);
 
   function formatCardNumber(value: string) {
     return value
@@ -158,16 +170,102 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
     return "";
   }
+  function clearPaymentAnimationTimeouts() {
+    animationTimeoutsRef.current.forEach((timeoutId) => {
+      window.clearTimeout(timeoutId);
+    });
+
+    animationTimeoutsRef.current = [];
+  }
+
+  function schedulePaymentAnimation(callback: () => void, delay: number) {
+    const timeoutId = window.setTimeout(callback, delay);
+    animationTimeoutsRef.current.push(timeoutId);
+  }
+
+  function showRequestStep() {
+    if (finalAnimationStartedRef.current) return;
+
+    setFormMessage("");
+    setVisibleStepIndex(0);
+    setCompletedStepIndex(-1);
+    setFailedStepIndex(null);
+    setPaymentFinalMessage("");
+    setPaymentResult(null);
+  }
+
+  function showGatewayStep() {
+    if (finalAnimationStartedRef.current) return;
+
+    schedulePaymentAnimation(() => {
+      setCompletedStepIndex(0);
+      setVisibleStepIndex(1);
+    }, STEP_ANIMATION_DELAY);
+  }
+
+  function showFinalAnimatedResult(event: PaymentSocketEvent) {
+    clearPaymentAnimationTimeouts();
+
+    finalAnimationStartedRef.current = true;
+
+    const aiStatus = (event.data as { status?: string } | undefined)?.status;
+    const result: PaymentFlowResult = aiStatus === "SUCCESS" ? "success" : "error";
+
+    setFormMessage("");
+    setPaymentFinalMessage("");
+    setPaymentResult(null);
+    setFailedStepIndex(null);
+
+    setVisibleStepIndex(0);
+    setCompletedStepIndex(-1);
+
+    schedulePaymentAnimation(() => {
+      setCompletedStepIndex(0);
+      setVisibleStepIndex(1);
+    }, STEP_ANIMATION_DELAY);
+
+    schedulePaymentAnimation(() => {
+      setCompletedStepIndex(1);
+      setVisibleStepIndex(2);
+    }, STEP_ANIMATION_DELAY * 2);
+
+    schedulePaymentAnimation(() => {
+      setPaymentResult(result);
+
+      if (result === "success") {
+        setCompletedStepIndex(2);
+        setFailedStepIndex(null);
+      } else {
+        setFailedStepIndex(2);
+      }
+
+      setPaymentFinalMessage(event.message);
+    }, STEP_ANIMATION_DELAY * 3);
+  }
 
   function resetPaymentFlow() {
-    setPaymentFlowStep(null);
+    clearPaymentAnimationTimeouts();
+
+    finalAnimationStartedRef.current = false;
+
+    setVisibleStepIndex(-1);
+    setCompletedStepIndex(-1);
+    setFailedStepIndex(null);
+
     setPaymentFinalMessage("");
     setPaymentResult(null);
     setFormMessage("");
   }
 
   function showFormError(message: string) {
-    setPaymentFlowStep(null);
+    clearPaymentAnimationTimeouts();
+
+    finalAnimationStartedRef.current = true;
+
+    setVisibleStepIndex(0);
+    setCompletedStepIndex(-1);
+    setFailedStepIndex(0);
+
     setPaymentFinalMessage("");
     setPaymentResult("error");
     setFormMessage(message);
@@ -220,7 +318,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
       });
 
       /*
-       * No se muestra un mensaje intermedio aquí.
+       * No se muestra mensaje intermedio.
        * El resultado final se muestra únicamente cuando llega
        * PAYMENT_AI_ANALYSIS_COMPLETED por WebSocket.
        */
@@ -247,7 +345,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   }
 
   const shouldShowPaymentFlow =
-    paymentFlowStep !== null || paymentFinalMessage || formMessage;
+    visibleStepIndex >= 0 || paymentFinalMessage || formMessage;
+
+  const visiblePaymentSteps =
+    visibleStepIndex >= 0
+      ? PAYMENT_FLOW_STEPS.slice(0, visibleStepIndex + 1)
+      : [];
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -347,22 +450,20 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
           {shouldShowPaymentFlow && (
             <div
-              className={`rounded-xl border p-4 transition-all duration-500 ${
-                paymentResult === "success"
-                  ? "border-green-100 bg-green-50"
-                  : paymentResult === "error"
-                    ? "border-red-100 bg-red-50"
-                    : "border-blue-100 bg-blue-50"
-              }`}
+              className={`rounded-xl border p-4 transition-all duration-500 ${paymentResult === "success"
+                ? "border-green-100 bg-green-50"
+                : paymentResult === "error"
+                  ? "border-red-100 bg-red-50"
+                  : "border-neutral-200 bg-neutral-50"
+                }`}
             >
               <h3
-                className={`text-sm font-semibold ${
-                  paymentResult === "success"
-                    ? "text-green-950"
-                    : paymentResult === "error"
-                      ? "text-red-950"
-                      : "text-blue-950"
-                }`}
+                className={`text-sm font-semibold ${paymentResult === "success"
+                  ? "text-green-950"
+                  : paymentResult === "error"
+                    ? "text-red-950"
+                    : "text-neutral-800"
+                  }`}
               >
                 Estado del proceso
               </h3>
@@ -373,43 +474,65 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                 </div>
               ) : (
                 <>
-                  <div className="mt-3 space-y-3">
-                    {PAYMENT_FLOW_STEPS.map((step, index) => {
-                      const isCompleted = index <= currentStepIndex;
-                      const isCurrent = index === currentStepIndex;
+                  <div className="mt-4 space-y-4">
+                    {visiblePaymentSteps.map((step, index) => {
+                      const isFinalStep = step.key === "PAYMENT_AI_ANALYSIS_COMPLETED";
+                      const isFailed = failedStepIndex === index;
+                      const isCompleted = completedStepIndex >= index && !isFailed;
+                      const isLoading = visibleStepIndex === index && !isCompleted && !isFailed;
 
                       return (
                         <div key={step.key} className="flex items-start gap-3">
                           <span
-                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
-                              isCompleted
-                                ? paymentResult === "success" &&
-                                  step.key === "PAYMENT_AI_ANALYSIS_COMPLETED"
-                                  ? "bg-green-600 text-white"
-                                  : paymentResult === "error" &&
-                                      step.key ===
-                                        "PAYMENT_AI_ANALYSIS_COMPLETED"
-                                    ? "bg-red-600 text-white"
+                            className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${isFailed
+                                ? "bg-red-600 text-white"
+                                : isCompleted
+                                  ? isFinalStep && paymentResult === "success"
+                                    ? "bg-green-600 text-white"
                                     : "bg-blue-700 text-white"
-                                : "bg-neutral-200 text-neutral-500"
-                            }`}
+                                  : "bg-neutral-300 text-neutral-700"
+                              }`}
                           >
-                            {isCompleted ? "✓" : index + 1}
+                            {isFailed ? (
+                              "X"
+                            ) : isCompleted ? (
+                              "✓"
+                            ) : (
+                              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-neutral-600" />
+                            )}
                           </span>
 
-                          <p
-                            className={`text-sm transition-all duration-300 ${
-                              isCompleted
-                                ? paymentResult === "success"
-                                  ? "text-green-900"
-                                  : paymentResult === "error"
-                                    ? "text-red-900"
-                                    : "text-blue-900"
-                                : "text-neutral-400"
-                            } ${isCurrent ? "font-semibold" : ""}`}
-                          >
-                            {step.label}
-                          </p>
+                          <div className="flex-1">
+                            <p
+                              className={`text-sm font-semibold transition-all duration-300 ${isFailed
+                                  ? "text-red-900"
+                                  : isCompleted
+                                    ? isFinalStep && paymentResult === "success"
+                                      ? "text-green-900"
+                                      : "text-blue-900"
+                                    : "text-neutral-700"
+                                }`}
+                            >
+                              {step.label}
+                            </p>
+
+                            <p
+                              className={`mt-1 text-xs leading-relaxed transition-all duration-300 ${isFailed
+                                  ? "text-red-700"
+                                  : isCompleted
+                                    ? isFinalStep && paymentResult === "success"
+                                      ? "text-green-700"
+                                      : "text-blue-700"
+                                    : "text-neutral-500"
+                                }`}
+                            >
+                              {isLoading
+                                ? `${step.description} Procesando...`
+                                : isFailed
+                                  ? "Este paso no pudo completarse correctamente."
+                                  : step.description}
+                            </p>
+                          </div>
                         </div>
                       );
                     })}
@@ -417,11 +540,10 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
                   {paymentFinalMessage && (
                     <div
-                      className={`mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium transition-all duration-500 ${
-                        paymentResult === "success"
-                          ? "text-green-800"
-                          : "text-red-700"
-                      }`}
+                      className={`mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium leading-relaxed transition-all duration-500 ${paymentResult === "success"
+                        ? "text-green-800"
+                        : "text-red-700"
+                        }`}
                     >
                       {paymentFinalMessage}
                     </div>
