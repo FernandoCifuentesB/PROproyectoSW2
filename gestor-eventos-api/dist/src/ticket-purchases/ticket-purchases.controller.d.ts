@@ -28,13 +28,13 @@ export declare class TicketPurchasesController {
         message: string;
         purchase: {
             event: {
+                description: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 price: number;
                 isActive: boolean;
                 name: string;
-                description: string;
                 date: Date;
                 imageUrl: string | null;
                 categoryId: string;
@@ -46,24 +46,24 @@ export declare class TicketPurchasesController {
             };
             eventTicket: {
                 event: {
+                    description: string;
                     id: string;
                     createdAt: Date;
                     updatedAt: Date;
                     price: number;
                     isActive: boolean;
                     name: string;
-                    description: string;
                     date: Date;
                     imageUrl: string | null;
                     categoryId: string;
                 };
                 ticketType: {
+                    description: string | null;
                     id: string;
                     createdAt: Date;
                     updatedAt: Date;
                     isActive: boolean;
                     name: string;
-                    description: string | null;
                 };
             } & {
                 id: string;
@@ -77,8 +77,9 @@ export declare class TicketPurchasesController {
                 isActive: boolean;
             };
         } & {
-            id: string;
+            eventTicketId: string;
             quantity: number;
+            id: string;
             unitPrice: number;
             totalPrice: number;
             status: import("@prisma/client").$Enums.PurchaseStatus;
@@ -86,7 +87,6 @@ export declare class TicketPurchasesController {
             updatedAt: Date;
             userId: string;
             eventId: string;
-            eventTicketId: string;
         };
         payment: {
             id?: string;
@@ -127,13 +127,13 @@ export declare class TicketPurchasesController {
     }>;
     findMine(req: AuthRequest): Promise<({
         event: {
+            description: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             price: number;
             isActive: boolean;
             name: string;
-            description: string;
             date: Date;
             imageUrl: string | null;
             categoryId: string;
@@ -145,24 +145,24 @@ export declare class TicketPurchasesController {
         };
         eventTicket: {
             event: {
+                description: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 price: number;
                 isActive: boolean;
                 name: string;
-                description: string;
                 date: Date;
                 imageUrl: string | null;
                 categoryId: string;
             };
             ticketType: {
+                description: string | null;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
                 name: string;
-                description: string | null;
             };
         } & {
             id: string;
@@ -176,8 +176,9 @@ export declare class TicketPurchasesController {
             isActive: boolean;
         };
     } & {
-        id: string;
+        eventTicketId: string;
         quantity: number;
+        id: string;
         unitPrice: number;
         totalPrice: number;
         status: import("@prisma/client").$Enums.PurchaseStatus;
@@ -185,17 +186,16 @@ export declare class TicketPurchasesController {
         updatedAt: Date;
         userId: string;
         eventId: string;
-        eventTicketId: string;
     })[]>;
     findOne(id: string, req: AuthRequest): Promise<{
         event: {
+            description: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             price: number;
             isActive: boolean;
             name: string;
-            description: string;
             date: Date;
             imageUrl: string | null;
             categoryId: string;
@@ -207,24 +207,24 @@ export declare class TicketPurchasesController {
         };
         eventTicket: {
             event: {
+                description: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 price: number;
                 isActive: boolean;
                 name: string;
-                description: string;
                 date: Date;
                 imageUrl: string | null;
                 categoryId: string;
             };
             ticketType: {
+                description: string | null;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
                 name: string;
-                description: string | null;
             };
         } & {
             id: string;
@@ -238,8 +238,9 @@ export declare class TicketPurchasesController {
             isActive: boolean;
         };
     } & {
-        id: string;
+        eventTicketId: string;
         quantity: number;
+        id: string;
         unitPrice: number;
         totalPrice: number;
         status: import("@prisma/client").$Enums.PurchaseStatus;
@@ -247,7 +248,6 @@ export declare class TicketPurchasesController {
         updatedAt: Date;
         userId: string;
         eventId: string;
-        eventTicketId: string;
     }>;
 }
 export {};
