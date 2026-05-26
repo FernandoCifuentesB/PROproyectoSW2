@@ -30,6 +30,7 @@ type GatewayPaymentResponse = {
   payment?: {
     id?: string;
     status?: string;
+    provider?: string;
     providerResponse?: {
       approved?: boolean;
       reason?: string;
@@ -37,6 +38,8 @@ type GatewayPaymentResponse = {
       message?: string;
     };
   };
+  message?: string;
+  error?: string;
 };
 
 @Injectable()
@@ -135,10 +138,15 @@ export class TicketPurchasesService {
       paymentResult.payment?.providerResponse?.approved === false;
 
     if (paymentWasRejected) {
-      const technicalCode =
-        paymentResult.payment?.providerResponse?.code ||
+      const rejectionReason =
         paymentResult.payment?.providerResponse?.reason ||
-        'PAYMENT_REJECTED';
+        paymentResult.payment?.providerResponse?.message ||
+        paymentResult.message ||
+        paymentResult.error ||
+        'El pago fue rechazado por la pasarela';
+
+      const technicalCode =
+        paymentResult.payment?.providerResponse?.code || 'PAYMENT_REJECTED';
 
       await this.paymentEventsService.publish('payment.result.created', {
         eventType: 'PAYMENT_FAILED',
@@ -146,19 +154,14 @@ export class TicketPurchasesService {
         eventTicketId,
         provider,
         technicalCode,
-        technicalMessage:
-          paymentResult.payment?.providerResponse?.message ||
-          paymentResult.payment?.providerResponse?.reason ||
-          'El pago fue rechazado por la pasarela',
+        technicalMessage: rejectionReason,
         eventName: eventTicket.event.name,
         ticketTypeName: eventTicket.ticketType.name,
         amount: totalPrice,
       });
 
       return {
-        message:
-          paymentResult.payment?.providerResponse?.reason ||
-          'Compra rechazada por la pasarela de pagos',
+        message: rejectionReason,
         payment: paymentResult.payment,
         purchase: null,
       };
