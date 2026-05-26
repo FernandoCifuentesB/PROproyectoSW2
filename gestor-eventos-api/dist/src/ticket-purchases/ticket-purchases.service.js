@@ -188,10 +188,27 @@ let TicketPurchasesService = class TicketPurchasesService {
             catch {
                 throw new Error(`La pasarela respondió un formato no válido: ${responseText.slice(0, 120)}`);
             }
-            const hasPaymentResponse = Boolean(data.payment);
-            if (!response.ok && !hasPaymentResponse) {
+            const isGatewayBusinessRejection = !response.ok && Boolean(data.paymentId) && Boolean(data.reason);
+            if (isGatewayBusinessRejection) {
+                return {
+                    message: data.message || 'Pago rechazado por el proveedor de tarjeta',
+                    payment: {
+                        id: data.paymentId,
+                        status: 'RECHAZADO',
+                        provider: payload.provider,
+                        providerResponse: {
+                            approved: false,
+                            code: 'PAYMENT_REJECTED',
+                            reason: data.reason,
+                            message: data.message || data.reason,
+                        },
+                    },
+                };
+            }
+            if (!response.ok) {
                 throw new Error(data.message ||
                     data.error ||
+                    data.reason ||
                     'La pasarela respondió con error sin detalle de pago');
             }
             return data;

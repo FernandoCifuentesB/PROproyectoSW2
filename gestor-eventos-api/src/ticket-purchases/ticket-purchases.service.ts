@@ -40,6 +40,8 @@ type GatewayPaymentResponse = {
   };
   message?: string;
   error?: string;
+  paymentId?: string;
+  reason?: string;
 };
 
 @Injectable()
@@ -248,12 +250,31 @@ export class TicketPurchasesService {
         );
       }
 
-      const hasPaymentResponse = Boolean(data.payment);
+      const isGatewayBusinessRejection =
+        !response.ok && Boolean(data.paymentId) && Boolean(data.reason);
 
-      if (!response.ok && !hasPaymentResponse) {
+      if (isGatewayBusinessRejection) {
+        return {
+          message: data.message || 'Pago rechazado por el proveedor de tarjeta',
+          payment: {
+            id: data.paymentId,
+            status: 'RECHAZADO',
+            provider: payload.provider,
+            providerResponse: {
+              approved: false,
+              code: 'PAYMENT_REJECTED',
+              reason: data.reason,
+              message: data.message || data.reason,
+            },
+          },
+        };
+      }
+
+      if (!response.ok) {
         throw new Error(
           data.message ||
           data.error ||
+          data.reason ||
           'La pasarela respondió con error sin detalle de pago',
         );
       }
