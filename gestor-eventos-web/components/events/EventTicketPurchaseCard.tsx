@@ -37,19 +37,19 @@ const PAYMENT_FLOW_STEPS: {
   key: PaymentFlowStep;
   label: string;
 }[] = [
-    {
-      key: "PAYMENT_REQUEST_SENT",
-      label: "Enviando petición a la pasarela de pagos",
-    },
-    {
-      key: "PAYMENT_GATEWAY_RESPONSE_RECEIVED",
-      label: "Respuesta recibida desde la pasarela de pagos",
-    },
-    {
-      key: "PAYMENT_AI_ANALYSIS_COMPLETED",
-      label: "Análisis inteligente completado",
-    },
-  ];
+  {
+    key: "PAYMENT_REQUEST_SENT",
+    label: "Enviando petición a la pasarela de pagos",
+  },
+  {
+    key: "PAYMENT_GATEWAY_RESPONSE_RECEIVED",
+    label: "Respuesta recibida desde la pasarela de pagos",
+  },
+  {
+    key: "PAYMENT_AI_ANALYSIS_COMPLETED",
+    label: "Análisis inteligente completado",
+  },
+];
 
 export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const router = useRouter();
@@ -63,14 +63,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const [cardNumber, setCardNumber] = useState("");
   const [cvv, setCvv] = useState("");
 
-  const [message, setMessage] = useState("");
-  const [messageStatus, setMessageStatus] = useState<
-    "success" | "error" | null
-  >(null);
+  const [paymentFlowStep, setPaymentFlowStep] =
+    useState<PaymentFlowStep | null>(null);
 
-  const [currentPaymentStatus, setCurrentPaymentStatus] =
-    useState<PaymentSocketEvent | null>(null);
-
+  const [paymentFinalMessage, setPaymentFinalMessage] = useState("");
+  const [paymentResult, setPaymentResult] = useState<PaymentFlowResult>(null);
+  const [formMessage, setFormMessage] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,22 +78,24 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
   useEffect(() => {
     const socketUrl =
-      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
+      process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
 
     const socket: Socket = io(socketUrl, {
       transports: ["websocket"],
     });
+
     socket.on("payment-status", (event: PaymentSocketEvent) => {
-      if (event.status !== "PAYMENT_AI_ANALYSIS_COMPLETED") {
-        setCurrentPaymentStatus(event);
-        return;
+      setFormMessage("");
+      setPaymentFlowStep(event.status);
+
+      if (event.status === "PAYMENT_AI_ANALYSIS_COMPLETED") {
+        setPaymentFinalMessage(event.message);
+
+        const aiStatus = (event.data as { status?: string } | undefined)
+          ?.status;
+
+        setPaymentResult(aiStatus === "SUCCESS" ? "success" : "error");
       }
-
-      setMessage(event.message);
-
-      const aiStatus = (event.data as { status?: string } | undefined)?.status;
-
-      setMessageStatus(aiStatus === "SUCCESS" ? "success" : "error");
     });
 
     return () => {
@@ -120,6 +120,14 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     if (!selectedTicket) return 0;
     return selectedTicket.price * quantity;
   }, [selectedTicket, quantity]);
+
+  const currentStepIndex = useMemo(() => {
+    if (!paymentFlowStep) return -1;
+
+    return PAYMENT_FLOW_STEPS.findIndex(
+      (step) => step.key === paymentFlowStep,
+    );
+  }, [paymentFlowStep]);
 
   function formatCardNumber(value: string) {
     return value
@@ -151,11 +159,27 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     return "";
   }
 
+  function resetPaymentFlow() {
+    setPaymentFlowStep(null);
+    setPaymentFinalMessage("");
+    setPaymentResult(null);
+    setFormMessage("");
+  }
+
+  function showFormError(message: string) {
+    setPaymentFlowStep(null);
+    setPaymentFinalMessage("");
+    setPaymentResult("error");
+    setFormMessage(message);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    resetPaymentFlow();
+
     if (!selectedId || !selectedTicket) {
-      setMessage("Seleccione un tipo de entrada");
+      showFormError("Seleccione un tipo de entrada");
       return;
     }
 
@@ -165,29 +189,26 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     }
 
     if (!cardNumber.trim()) {
-      setMessage("Ingrese el número de tarjeta");
+      showFormError("Ingrese el número de tarjeta");
       return;
     }
 
     if (cardBrand !== "NU" && !isValidCardForBrand(cardNumber, cardBrand)) {
-      setMessage(getBrandValidationMessage());
+      showFormError(getBrandValidationMessage());
       return;
     }
 
     if (cardBrand === "NU" && !cvv.trim()) {
-      setMessage("Ingrese el CVV para pagar con Nu");
+      showFormError("Ingrese el CVV para pagar con Nu");
       return;
     }
 
     if (cardBrand === "NU" && !/^\d{3,4}$/.test(cvv)) {
-      setMessage("El CVV debe tener 3 o 4 dígitos");
+      showFormError("El CVV debe tener 3 o 4 dígitos");
       return;
     }
 
     setSubmitting(true);
-    setMessage("");
-    setMessageStatus(null);
-    setCurrentPaymentStatus(null);
 
     try {
       const result = await createTicketPurchase({
@@ -198,11 +219,17 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
         cvv: cardBrand === "NU" ? cvv : undefined,
       });
 
-      if (!result.purchase) {
-        return;
+      /*
+       * No se muestra un mensaje intermedio aquí.
+       * El resultado final se muestra únicamente cuando llega
+       * PAYMENT_AI_ANALYSIS_COMPLETED por WebSocket.
+       */
+      if (result.purchase) {
+        setQuantity(1);
+        setCardNumber("");
+        setCvv("");
+        await loadTickets();
       }
-      return;
-
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -213,11 +240,14 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
         ? "No se pudo conectar correctamente con el backend o la pasarela de pagos."
         : errorMessage;
 
-      setMessage(safeMessage);
+      showFormError(safeMessage);
     } finally {
       setSubmitting(false);
     }
   }
+
+  const shouldShowPaymentFlow =
+    paymentFlowStep !== null || paymentFinalMessage || formMessage;
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -315,27 +345,90 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
             </p>
           </div>
 
-          {currentPaymentStatus && (
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-              <h3 className="text-sm font-semibold text-blue-950">
+          {shouldShowPaymentFlow && (
+            <div
+              className={`rounded-xl border p-4 transition-all duration-500 ${
+                paymentResult === "success"
+                  ? "border-green-100 bg-green-50"
+                  : paymentResult === "error"
+                    ? "border-red-100 bg-red-50"
+                    : "border-blue-100 bg-blue-50"
+              }`}
+            >
+              <h3
+                className={`text-sm font-semibold ${
+                  paymentResult === "success"
+                    ? "text-green-950"
+                    : paymentResult === "error"
+                      ? "text-red-950"
+                      : "text-blue-950"
+                }`}
+              >
                 Estado del proceso
               </h3>
 
-              <p className="mt-2 text-sm text-blue-900">
-                {currentPaymentStatus.message}
-              </p>
-            </div>
-          )}
+              {formMessage ? (
+                <div className="mt-3 rounded-lg bg-white px-4 py-3 text-sm font-medium text-red-700">
+                  {formMessage}
+                </div>
+              ) : (
+                <>
+                  <div className="mt-3 space-y-3">
+                    {PAYMENT_FLOW_STEPS.map((step, index) => {
+                      const isCompleted = index <= currentStepIndex;
+                      const isCurrent = index === currentStepIndex;
 
-          {message && (
-            <p
-              className={`rounded-xl px-4 py-3 text-sm ${messageStatus === "success"
-                ? "bg-green-50 text-green-700"
-                : "bg-red-50 text-red-700"
-                }`}
-            >
-              {message}
-            </p>
+                      return (
+                        <div key={step.key} className="flex items-start gap-3">
+                          <span
+                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
+                              isCompleted
+                                ? paymentResult === "success" &&
+                                  step.key === "PAYMENT_AI_ANALYSIS_COMPLETED"
+                                  ? "bg-green-600 text-white"
+                                  : paymentResult === "error" &&
+                                      step.key ===
+                                        "PAYMENT_AI_ANALYSIS_COMPLETED"
+                                    ? "bg-red-600 text-white"
+                                    : "bg-blue-700 text-white"
+                                : "bg-neutral-200 text-neutral-500"
+                            }`}
+                          >
+                            {isCompleted ? "✓" : index + 1}
+                          </span>
+
+                          <p
+                            className={`text-sm transition-all duration-300 ${
+                              isCompleted
+                                ? paymentResult === "success"
+                                  ? "text-green-900"
+                                  : paymentResult === "error"
+                                    ? "text-red-900"
+                                    : "text-blue-900"
+                                : "text-neutral-400"
+                            } ${isCurrent ? "font-semibold" : ""}`}
+                          >
+                            {step.label}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {paymentFinalMessage && (
+                    <div
+                      className={`mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium transition-all duration-500 ${
+                        paymentResult === "success"
+                          ? "text-green-800"
+                          : "text-red-700"
+                      }`}
+                    >
+                      {paymentFinalMessage}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           )}
 
           <button
