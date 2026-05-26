@@ -28,79 +28,188 @@ export type PaymentAiCompletedEvent = {
   technicalCode?: string;
 };
 
+type OllamaGenerateResponse = {
+  response?: string;
+};
+
 export class AiMessageService {
-  generateMessage(event: PaymentResultEvent): PaymentAiCompletedEvent {
+  private readonly ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
+  private readonly model = process.env.OLLAMA_MODEL || "llama3.2";
+
+  async generateMessage(
+    event: PaymentResultEvent,
+  ): Promise<PaymentAiCompletedEvent> {
+    const status = this.getStatus(event.eventType);
+
+    const userMessage = await this.generateMessageWithOllama(event);
+
+    return {
+      eventType: "PAYMENT_AI_COMPLETED",
+      originalEventType: event.eventType,
+      purchaseId: event.purchaseId,
+      userId: event.userId,
+      eventTicketId: event.eventTicketId,
+      status,
+      technicalCode: event.technicalCode,
+      userMessage,
+    };
+  }
+
+  private async generateMessageWithOllama(
+    event: PaymentResultEvent,
+  ): Promise<string> {
+    try {
+      const response = await fetch(`${this.ollamaUrl}/api/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.model,
+          prompt: this.buildPrompt(event),
+          stream: false,
+          options: {
+            temperature: 1.1,
+            top_p: 0.95,
+            repeat_penalty: 1.15,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama respondió con estado ${response.status}`);
+      }
+
+      const data = (await response.json()) as OllamaGenerateResponse;
+      const message = data.response?.trim();
+
+      if (!message) {
+        return this.generateFallbackMessage(event);
+      }
+
+      return this.cleanMessage(message);
+    } catch (error) {
+      console.error("Error generando mensaje con Ollama:", error);
+      return this.generateFallbackMessage(event);
+    }
+  }
+
+  private buildPrompt(event: PaymentResultEvent): string {
+    const eventName = event.eventName || "el evento";
+    const ticketTypeName = event.ticketTypeName || "la entrada";
+    const quantity = event.quantity || 1;
+    const amount = event.amount || "el valor de la compra";
+    const provider = event.provider || "la pasarela";
+
+    const randomSeed = `${Date.now()}-${Math.random()}`;
+
     if (event.eventType === "PAYMENT_SUCCESS") {
-      return this.generateSuccessMessage(event);
+      return `
+Eres un agente inteligente de una plataforma de eventos.
+
+Genera UN mensaje nuevo, natural y diferente para confirmar una compra exitosa.
+
+Datos:
+- Evento: ${eventName}
+- Tipo de entrada: ${ticketTypeName}
+- Cantidad: ${quantity}
+- Valor: ${amount}
+- Medio de pago: ${provider}
+- Semilla de variación: ${randomSeed}
+
+Reglas:
+- Responde en español.
+- Máximo 2 frases.
+- No repitas estructuras exactas.
+- No uses comillas.
+- No uses listas.
+- No menciones que eres una IA.
+- Debe sonar humano, positivo y útil.
+- Incluye una recomendación breve para asistir al evento.
+`;
     }
 
     if (event.eventType === "PAYMENT_TIMEOUT") {
-      return this.generateTimeoutMessage(event);
+      return `
+Eres un agente inteligente de recuperación de ventas para una plataforma de eventos.
+
+Genera UN mensaje nuevo, empático y persuasivo para un error técnico o timeout en el pago.
+
+Datos:
+- Evento: ${eventName}
+- Tipo de entrada: ${ticketTypeName}
+- Medio de pago: ${provider}
+- Código técnico interno: ${event.technicalCode || "NETWORK_TIMEOUT"}
+- Detalle técnico interno: ${event.technicalMessage || "error temporal de conexión"}
+- Semilla de variación: ${randomSeed}
+
+Reglas:
+- Responde en español.
+- Máximo 2 frases.
+- No uses lenguaje técnico.
+- No uses comillas.
+- No uses listas.
+- No menciones que eres una IA.
+- Debe tranquilizar al usuario.
+- Invita a intentar nuevamente sin sonar robótico.
+`;
     }
 
-    return this.generateFailedMessage(event);
+    return `
+Eres un agente inteligente de recuperación de pagos para una plataforma de eventos.
+
+Genera UN mensaje nuevo, empático y persuasivo para un pago rechazado.
+
+Datos:
+- Evento: ${eventName}
+- Tipo de entrada: ${ticketTypeName}
+- Valor: ${amount}
+- Medio de pago: ${provider}
+- Código técnico interno: ${event.technicalCode || "PAYMENT_REJECTED"}
+- Detalle técnico interno: ${event.technicalMessage || "pago rechazado"}
+- Semilla de variación: ${randomSeed}
+
+Reglas:
+- Responde en español.
+- Máximo 2 frases.
+- No uses lenguaje técnico.
+- No uses comillas.
+- No uses listas.
+- No menciones que eres una IA.
+- Debe sonar empático.
+- Debe motivar al usuario a intentar de nuevo o usar otro medio de pago.
+`;
   }
 
-  private generateSuccessMessage(
-    event: PaymentResultEvent,
-  ): PaymentAiCompletedEvent {
+  private getStatus(
+    eventType: PaymentEventType,
+  ): "SUCCESS" | "FAILED" | "TIMEOUT" {
+    if (eventType === "PAYMENT_SUCCESS") return "SUCCESS";
+    if (eventType === "PAYMENT_TIMEOUT") return "TIMEOUT";
+    return "FAILED";
+  }
+
+  private cleanMessage(message: string): string {
+    return message
+      .replace(/^["'“”]+/, "")
+      .replace(/["'“”]+$/, "")
+      .replace(/\n/g, " ")
+      .trim();
+  }
+
+  private generateFallbackMessage(event: PaymentResultEvent): string {
     const eventName = event.eventName || "tu evento";
     const ticketTypeName = event.ticketTypeName || "entrada";
+    const uniqueReference = Math.floor(Math.random() * 99999);
 
-    return {
-      eventType: "PAYMENT_AI_COMPLETED",
-      originalEventType: event.eventType,
-      purchaseId: event.purchaseId,
-      userId: event.userId,
-      eventTicketId: event.eventTicketId,
-      status: "SUCCESS",
-      userMessage: `¡Compra confirmada! Ya tienes tu ${ticketTypeName} para ${eventName}. Te recomendamos llegar con tiempo, tener tu documento a la mano y revisar las indicaciones del evento antes del ingreso.`,
-    };
-  }
+    if (event.eventType === "PAYMENT_SUCCESS") {
+      return `Tu compra fue confirmada correctamente para ${eventName}. Ten lista tu ${ticketTypeName} y llega con tiempo para disfrutar la experiencia. Ref ${uniqueReference}`;
+    }
 
-  private generateTimeoutMessage(
-    event: PaymentResultEvent,
-  ): PaymentAiCompletedEvent {
-    return {
-      eventType: "PAYMENT_AI_COMPLETED",
-      originalEventType: event.eventType,
-      purchaseId: event.purchaseId,
-      userId: event.userId,
-      eventTicketId: event.eventTicketId,
-      status: "TIMEOUT",
-      technicalCode: event.technicalCode,
-      userMessage:
-        "Detectamos un problema técnico al procesar tu pago. No te preocupes, tu lugar puede seguir disponible por unos minutos. Intenta nuevamente o usa otro medio de pago para completar la compra.",
-    };
-  }
+    if (event.eventType === "PAYMENT_TIMEOUT") {
+      return `Tuvimos una interrupción temporal al procesar el pago. Intenta nuevamente en unos minutos para completar tu compra. Ref ${uniqueReference}`;
+    }
 
-  private generateFailedMessage(
-    event: PaymentResultEvent,
-  ): PaymentAiCompletedEvent {
-    const code = event.technicalCode || "PAYMENT_REJECTED";
-
-    const messageByCode: Record<string, string> = {
-      INSUFFICIENT_FUNDS:
-        "No pudimos completar el pago porque parece que el saldo o cupo disponible no fue suficiente. Puedes intentar con otra tarjeta o revisar tu banco para no perder tu entrada.",
-      INVALID_CVV:
-        "El código de seguridad no coincide con la tarjeta. Revisa el CVV e intenta nuevamente; estás muy cerca de completar tu compra.",
-      INVALID_CARD:
-        "La tarjeta ingresada no pudo ser validada. Verifica el número o intenta con otro medio de pago para finalizar tu compra.",
-      PAYMENT_REJECTED:
-        "La pasarela rechazó el pago. Puedes intentar nuevamente o usar otra tarjeta para completar tu compra.",
-    };
-
-    return {
-      eventType: "PAYMENT_AI_COMPLETED",
-      originalEventType: event.eventType,
-      purchaseId: event.purchaseId,
-      userId: event.userId,
-      eventTicketId: event.eventTicketId,
-      status: "FAILED",
-      technicalCode: code,
-      userMessage:
-        messageByCode[code] ||
-        `No pudimos completar el pago por este motivo: ${event.technicalMessage || code}. Puedes intentar nuevamente con otro medio de pago.`,
-    };
+    return `No pudimos completar el pago en este intento. Revisa los datos o prueba con otro medio de pago para asegurar tu entrada. Ref ${uniqueReference}`;
   }
 }

@@ -16,20 +16,20 @@ async function bootstrap() {
 
   await rabbitMqService.connect();
 
-  await rabbitMqService.consume(PAYMENT_RESULT_QUEUE, async (payload) => {
-    const paymentEvent = payload as PaymentResultEvent;
+ await rabbitMqService.consume(PAYMENT_RESULT_QUEUE, async (payload) => {
+  const paymentEvent = payload as PaymentResultEvent;
 
-    console.log("Evento de pago recibido:", paymentEvent);
+  console.log("Evento de pago recibido:", paymentEvent);
 
-    const aiCompletedEvent = aiMessageService.generateMessage(paymentEvent);
+  const aiCompletedEvent = await aiMessageService.generateMessage(paymentEvent);
 
-    await rabbitMqService.publish(
-      PAYMENT_AI_COMPLETED_QUEUE,
-      aiCompletedEvent,
-    );
+  await rabbitMqService.publish(
+    PAYMENT_AI_COMPLETED_QUEUE,
+    aiCompletedEvent,
+  );
 
-    console.log("Evento AI generado:", aiCompletedEvent);
-  });
+  console.log("Evento AI generado:", aiCompletedEvent);
+});
 }
 
 bootstrap().catch((error) => {
