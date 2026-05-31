@@ -17,29 +17,47 @@ services:
       timeout: 5s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: gestor_eventos_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
   api:
     build: .
     container_name: gestor_eventos_api
     restart: always
     ports:
       - "3000:3000"
-      - "5555:5555" 
+      - "5555:5555"
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/gestor_eventos?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     command: npm run start:dev
 
-  rabbitmq:
-      image: rabbitmq:3-management
-      container_name: gestor_eventos_rabbitmq
-      restart: always
-      ports:
-        - "5672:5672"
-        - "15672:15672"
-      environment:
-        RABBITMQ_DEFAULT_USER: guest
-        RABBITMQ_DEFAULT_PASS: guest
+  ai-worker:
+    build:
+      context: ../gestor-eventos-ai-worker
+      dockerfile: Dockerfile
+    container_name: gestor_eventos_ai_worker
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.2
+
 volumes:
   postgres_data:
