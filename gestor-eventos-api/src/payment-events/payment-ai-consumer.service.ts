@@ -3,14 +3,18 @@ import { PaymentEventsGateway } from './payment-events.gateway';
 import { PaymentEventsService } from './payment-events.service';
 
 type PaymentAiCompletedEvent = {
+  eventId: string;
+  sourceEventId: string;
+  eventType: 'PAYMENT_AI_COMPLETED';
+  originalEventType: 'PAYMENT_FAILED' | 'PAYMENT_TIMEOUT' | 'PAYMENT_SUCCESS';
   paymentTrackingId: string;
   purchaseId?: string;
-  message: string;
-  eventType?: string;
-  provider?: string;
-  technicalCode?: string;
-  technicalMessage?: string;
-  [key: string]: unknown;
+  userId: string;
+  eventTicketId: string;
+  status: 'SUCCESS' | 'FAILED' | 'TIMEOUT';
+  userMessage: string;
+  technicalCode: string;
+  createdAt: string;
 };
 
 @Injectable()
@@ -39,7 +43,7 @@ export class PaymentAiConsumerService implements OnModuleInit {
           paymentTrackingId: event.paymentTrackingId,
           purchaseId: event.purchaseId,
           status: 'PAYMENT_AI_ANALYSIS_COMPLETED',
-          message: event.message,
+          message: event.userMessage,
           data: event,
         });
 

@@ -1,9 +1,14 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import * as amqp from 'amqplib';
 import type { Channel, ConsumeMessage } from 'amqplib';
 
 @Injectable()
-export class PaymentEventsService implements OnModuleDestroy {
+export class PaymentEventsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PaymentEventsService.name);
 
   private connection?: Awaited<ReturnType<typeof amqp.connect>>;
@@ -11,6 +16,10 @@ export class PaymentEventsService implements OnModuleDestroy {
 
   private readonly rabbitUrl =
     process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
+
+  async onModuleInit(): Promise<void> {
+    await this.connectWithRetry();
+  }
 
   async publish(queue: string, payload: unknown): Promise<void> {
     const channel = await this.getOrCreateChannel();
@@ -46,7 +55,10 @@ export class PaymentEventsService implements OnModuleDestroy {
 
         channel.ack(message);
       } catch (error) {
-        this.logger.error(`Error procesando evento de RabbitMQ: ${queue}`, error);
+        this.logger.error(
+          `Error procesando evento de RabbitMQ: ${queue}`,
+          error,
+        );
 
         channel.nack(message, false, false);
       }
@@ -60,16 +72,57 @@ export class PaymentEventsService implements OnModuleDestroy {
       return this.channel;
     }
 
-    this.connection = await amqp.connect(this.rabbitUrl);
-    this.channel = await this.connection.createChannel();
+    await this.connectWithRetry();
 
-    this.logger.log('RabbitMQ conectado correctamente desde backend');
+    if (!this.channel) {
+      throw new Error('No fue posible crear el canal de RabbitMQ');
+    }
 
     return this.channel;
+  }
+
+  private async connectWithRetry(
+    retries = 15,
+    delayMs = 3000,
+  ): Promise<void> {
+    if (this.channel) {
+      return;
+    }
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        this.logger.log(
+          `Intentando conectar a RabbitMQ. Intento ${attempt}/${retries}`,
+        );
+
+        this.connection = await amqp.connect(this.rabbitUrl);
+        this.channel = await this.connection.createChannel();
+
+        this.logger.log('API conectado correctamente a RabbitMQ');
+        return;
+      } catch (error) {
+        this.logger.warn(
+          `RabbitMQ no disponible. Reintento ${attempt}/${retries} en ${delayMs}ms`,
+        );
+
+        if (attempt === retries) {
+          this.logger.error('No fue posible conectar a RabbitMQ', error);
+          throw error;
+        }
+
+        await this.sleep(delayMs);
+      }
+    }
+  }
+
+  private sleep(delayMs: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
   async onModuleDestroy(): Promise<void> {
     await this.channel?.close();
     await this.connection?.close();
+
+    this.logger.log('Conexión RabbitMQ cerrada');
   }
 }

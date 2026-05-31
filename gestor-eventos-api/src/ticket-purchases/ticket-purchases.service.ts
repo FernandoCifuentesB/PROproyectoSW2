@@ -8,6 +8,8 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { PaymentEventsGateway } from '@/payment-events/payment-events.gateway';
 import { PaymentEventsService } from '@/payment-events/payment-events.service';
 import { CreateTicketPurchaseDto } from './dto/create-ticket-purchase.dto';
+import { randomUUID } from 'crypto';
+import type { PaymentResultCreatedEvent } from '@/payment-events/types/payment-result-created-event.type';
 
 const ticketPurchaseInclude = {
   event: true,
@@ -120,14 +122,21 @@ export class TicketPurchasesService {
     });
 
     const paymentResult = await this.sendPaymentToGateway({
-      companyId: process.env.PAYMENT_COMPANY_ID || '550e8400-e29b-41d4-a716-446655440000',
+      companyId:
+        process.env.PAYMENT_COMPANY_ID ||
+        '550e8400-e29b-41d4-a716-446655440000',
       externalRef,
       idempotencyKey,
       paymentTrackingId,
+      userId,
+      eventTicketId,
       provider,
       cardNumber,
       cvv,
       amount: totalPrice,
+      quantity,
+      eventName: eventTicket.event.name,
+      ticketTypeName: eventTicket.ticketType.name,
     });
 
     this.paymentEventsGateway.emitPaymentStatus({
@@ -222,10 +231,15 @@ export class TicketPurchasesService {
     externalRef: string;
     idempotencyKey: string;
     paymentTrackingId: string;
+    userId: string;
+    eventTicketId: string;
     provider: 'VISA' | 'MASTERCARD' | 'NU';
     cardNumber: string;
     cvv?: string;
     amount: number;
+    quantity: number;
+    eventName: string;
+    ticketTypeName: string;
   }): Promise<GatewayPaymentResponse> {
     const gatewayUrl =
       process.env.PAYMENT_GATEWAY_URL || 'http://localhost:3010';
@@ -285,17 +299,31 @@ export class TicketPurchasesService {
 
       return data;
     } catch (error) {
-      await this.paymentEventsService.publish('payment.result.created', {
+      const timeoutEvent: PaymentResultCreatedEvent = {
+        eventId: randomUUID(),
         eventType: 'PAYMENT_TIMEOUT',
         paymentTrackingId: payload.paymentTrackingId,
+        userId: payload.userId,
+        eventTicketId: payload.eventTicketId,
         provider: payload.provider,
         technicalCode: 'NETWORK_TIMEOUT',
         technicalMessage:
           error instanceof Error
             ? error.message
             : 'No fue posible conectar con la pasarela de pagos',
+        eventName: payload.eventName,
+        ticketTypeName: payload.ticketTypeName,
+        quantity: payload.quantity,
         amount: payload.amount,
-      });
+        currency: 'COP',
+        createdAt: new Date().toISOString(),
+      };
+
+      await this.paymentEventsService.publish(
+        'payment.result.created',
+        timeoutEvent,
+      );
+
       throw new BadRequestException(
         'No fue posible conectar correctamente con la pasarela de pagos',
       );
