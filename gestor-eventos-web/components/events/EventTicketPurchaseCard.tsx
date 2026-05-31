@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
+import { createPortal } from "react-dom";
 import { getEventTicketsPublic, createTicketPurchase } from "@/lib/ticket-api";
 import { EventTicket } from "@/lib/types";
 import { formatCop } from "@/lib/tickets";
@@ -26,6 +27,7 @@ type PaymentSocketEvent = {
   message: string;
   data?: unknown;
 };
+
 type PaymentProcessProgressEvent = {
   eventId: string;
   paymentTrackingId: string;
@@ -42,13 +44,11 @@ type PaymentProcessProgressEvent = {
 type PaymentFlowStep =
   | "PAYMENT_REQUEST_SENT"
   | "PAYMENT_GATEWAY_RESPONSE_RECEIVED"
-  | "PAYMENT_AI_ANALYSIS_COMPLETED"
-  | "PAYMENT_PROCESS_PROGRESS";
+  | "PAYMENT_AI_ANALYSIS_COMPLETED";
 
 type PaymentFlowResult = "success" | "error" | null;
 
 const PAYMENT_FLOW_STEPS: {
-
   key: PaymentFlowStep;
   label: string;
   description: string;
@@ -72,7 +72,9 @@ const PAYMENT_FLOW_STEPS: {
         "El agente de IA está interpretando el resultado para mostrarte una respuesta clara y útil.",
     },
   ];
+
 const STEP_ANIMATION_DELAY = 700;
+
 export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const router = useRouter();
   const { token } = useAuth();
@@ -93,19 +95,28 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const [paymentResult, setPaymentResult] = useState<PaymentFlowResult>(null);
   const [formMessage, setFormMessage] = useState("");
 
+  const [currentBrokerStep, setCurrentBrokerStep] =
+    useState<PaymentProcessProgressEvent | null>(null);
+  const [brokerStepCount, setBrokerStepCount] = useState(0);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const animationTimeoutsRef = useRef<number[]>([]);
   const finalAnimationStartedRef = useRef(false);
   const socketRef = useRef<Socket | null>(null);
-  const [brokerTrace, setBrokerTrace] = useState<PaymentProcessProgressEvent[]>([]);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadTickets();
   }, [eventId]);
+
   useEffect(() => {
     return () => {
       clearPaymentAnimationTimeouts();
     };
+  }, []);
+  useEffect(() => {
+    setIsMounted(true);
   }, []);
   useEffect(() => {
     const socketUrl =
@@ -114,31 +125,23 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     const socket: Socket = io(socketUrl, {
       transports: ["websocket"],
     });
-    socketRef.current = socket;
 
+    socketRef.current = socket;
 
     socket.on("payment-status", (event: PaymentSocketEvent) => {
       console.log("Evento socket recibido:", event);
 
       if (event.status === "PAYMENT_PROCESS_PROGRESS") {
-        const progressEvent = event.data as PaymentProcessProgressEvent | undefined;
+        const progressEvent = event.data as
+          | PaymentProcessProgressEvent
+          | undefined;
 
         if (!progressEvent?.eventId) {
           return;
         }
 
-        setBrokerTrace((previous) => {
-          const alreadyExists = previous.some(
-            (item) => item.eventId === progressEvent.eventId,
-          );
-
-          if (alreadyExists) {
-            return previous;
-          }
-
-          return [...previous, progressEvent];
-        });
-
+        setCurrentBrokerStep(progressEvent);
+        setBrokerStepCount((previous) => previous + 1);
         return;
       }
 
@@ -159,7 +162,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
     return () => {
       socket.disconnect();
-      socketRef.current = socket;
+      socketRef.current = null;
     };
   }, []);
 
@@ -180,8 +183,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     if (!selectedTicket) return 0;
     return selectedTicket.price * quantity;
   }, [selectedTicket, quantity]);
-
-
 
   function formatCardNumber(value: string) {
     return value
@@ -212,6 +213,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
     return "";
   }
+
   function clearPaymentAnimationTimeouts() {
     animationTimeoutsRef.current.forEach((timeoutId) => {
       window.clearTimeout(timeoutId);
@@ -297,9 +299,10 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     setPaymentFinalMessage("");
     setPaymentResult(null);
     setFormMessage("");
-    setBrokerTrace([]);
-  }
 
+    setCurrentBrokerStep(null);
+    setBrokerStepCount(0);
+  }
 
   function showFormError(message: string) {
     clearPaymentAnimationTimeouts();
@@ -318,7 +321,11 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    console.log("Click pagar: abriendo modal");
+
     resetPaymentFlow();
+    setShowPaymentModal(true);
+    showRequestStep();
 
     if (!selectedId || !selectedTicket) {
       showFormError("Seleccione un tipo de entrada");
@@ -326,6 +333,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     }
 
     if (!token) {
+      setShowPaymentModal(false);
       router.push("/login");
       return;
     }
@@ -368,11 +376,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
         paymentTrackingId,
       });
 
-      /*
-       * No se muestra mensaje intermedio.
-       * El resultado final se muestra únicamente cuando llega
-       * PAYMENT_AI_ANALYSIS_COMPLETED por WebSocket.
-       */
       if (result.purchase) {
         setQuantity(1);
         setCardNumber("");
@@ -395,283 +398,335 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     }
   }
 
-  const shouldShowPaymentFlow =
-    visibleStepIndex >= 0 || paymentFinalMessage || formMessage;
-
   const visiblePaymentSteps =
     visibleStepIndex >= 0
       ? PAYMENT_FLOW_STEPS.slice(0, visibleStepIndex + 1)
       : [];
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-bold text-neutral-900">Comprar entradas</h2>
+    <>
+      <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-neutral-900">Comprar entradas</h2>
 
-      {!canBuy && (
-        <p className="mt-3 text-sm text-red-600">
-          Este evento no está disponible para compra.
-        </p>
-      )}
+        {!canBuy && (
+          <p className="mt-3 text-sm text-red-600">
+            Este evento no está disponible para compra.
+          </p>
+        )}
 
-      {canBuy && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <label className="block text-sm font-medium text-neutral-700">
-            Tipo de entrada
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
-            >
-              <option value="">Seleccione</option>
-
-              {tickets
-                .filter((ticket) => ticket.isActive)
-                .map((ticket) => (
-                  <option key={ticket.id} value={ticket.id}>
-                    {ticket.ticketType?.name} - {formatCop(ticket.price)}{" "}
-                    (Disponibles: {ticket.stock - ticket.sold})
-                  </option>
-                ))}
-            </select>
-          </label>
-
-          <label className="block text-sm font-medium text-neutral-700">
-            Cantidad
-            <input
-              type="number"
-              min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
-            />
-          </label>
-
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-            <h3 className="font-semibold text-neutral-900">Datos de pago</h3>
-
-            <label className="mt-3 block text-sm font-medium text-neutral-700">
-              Tipo de tarjeta
+        {canBuy && (
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <label className="block text-sm font-medium text-neutral-700">
+              Tipo de entrada
               <select
-                value={cardBrand}
-                onChange={(e) => {
-                  setCardBrand(e.target.value as CardBrand);
-                  setCvv("");
-                }}
+                value={selectedId}
+                onChange={(e) => setSelectedId(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
               >
-                <option value="VISA">Visa</option>
-                <option value="MASTERCARD">Mastercard</option>
-                <option value="NU">Nu</option>
+                <option value="">Seleccione</option>
+
+                {tickets
+                  .filter((ticket) => ticket.isActive)
+                  .map((ticket) => (
+                    <option key={ticket.id} value={ticket.id}>
+                      {ticket.ticketType?.name} - {formatCop(ticket.price)}{" "}
+                      (Disponibles: {ticket.stock - ticket.sold})
+                    </option>
+                  ))}
               </select>
             </label>
 
-            <label className="mt-3 block text-sm font-medium text-neutral-700">
-              Número de tarjeta
+            <label className="block text-sm font-medium text-neutral-700">
+              Cantidad
               <input
-                type="text"
-                inputMode="numeric"
-                placeholder={getCardPlaceholder()}
-                value={cardNumber}
-                onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                type="number"
+                min={1}
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
                 className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
               />
             </label>
 
-            {cardBrand === "NU" && (
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+              <h3 className="font-semibold text-neutral-900">Datos de pago</h3>
+
               <label className="mt-3 block text-sm font-medium text-neutral-700">
-                CVV
+                Tipo de tarjeta
+                <select
+                  value={cardBrand}
+                  onChange={(e) => {
+                    setCardBrand(e.target.value as CardBrand);
+                    setCvv("");
+                  }}
+                  className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
+                >
+                  <option value="VISA">Visa</option>
+                  <option value="MASTERCARD">Mastercard</option>
+                  <option value="NU">Nu</option>
+                </select>
+              </label>
+
+              <label className="mt-3 block text-sm font-medium text-neutral-700">
+                Número de tarjeta
                 <input
                   type="text"
                   inputMode="numeric"
-                  placeholder="890"
-                  value={cvv}
-                  onChange={(e) => setCvv(formatCvv(e.target.value))}
+                  placeholder={getCardPlaceholder()}
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                   className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
                 />
               </label>
-            )}
 
-            <p className="mt-3 text-sm text-neutral-600">
-              Total a pagar:{" "}
-              <span className="font-semibold text-neutral-900">
-                {formatCop(totalAmount)}
-              </span>
-            </p>
-          </div>
-
-          {shouldShowPaymentFlow && (
-            <div
-              className={`rounded-xl border p-4 transition-all duration-500 ${paymentResult === "success"
-                ? "border-green-100 bg-green-50"
-                : paymentResult === "error"
-                  ? "border-red-100 bg-red-50"
-                  : "border-neutral-200 bg-neutral-50"
-                }`}
-            >
-              <h3
-                className={`text-sm font-semibold ${paymentResult === "success"
-                  ? "text-green-950"
-                  : paymentResult === "error"
-                    ? "text-red-950"
-                    : "text-neutral-800"
-                  }`}
-              >
-                Estado del proceso
-              </h3>
-
-              {formMessage ? (
-                <div className="mt-3 rounded-lg bg-white px-4 py-3 text-sm font-medium text-red-700">
-                  {formMessage}
-                </div>
-              ) : (
-                <>
-                  <div className="mt-4 space-y-4">
-                    {visiblePaymentSteps.map((step, index) => {
-                      const isFinalStep = step.key === "PAYMENT_AI_ANALYSIS_COMPLETED";
-                      const isFailed = failedStepIndex === index;
-                      const isCompleted = completedStepIndex >= index && !isFailed;
-                      const isLoading = visibleStepIndex === index && !isCompleted && !isFailed;
-
-                      return (
-                        <div key={step.key} className="flex items-start gap-3">
-                          <span
-                            className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${isFailed
-                              ? "bg-red-600 text-white"
-                              : isCompleted
-                                ? isFinalStep && paymentResult === "success"
-                                  ? "bg-green-600 text-white"
-                                  : "bg-blue-700 text-white"
-                                : "bg-neutral-300 text-neutral-700"
-                              }`}
-                          >
-                            {isFailed ? (
-                              "X"
-                            ) : isCompleted ? (
-                              "✓"
-                            ) : (
-                              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-neutral-600" />
-                            )}
-                          </span>
-
-                          <div className="flex-1">
-                            <p
-                              className={`text-sm font-semibold transition-all duration-300 ${isFailed
-                                ? "text-red-900"
-                                : isCompleted
-                                  ? isFinalStep && paymentResult === "success"
-                                    ? "text-green-900"
-                                    : "text-blue-900"
-                                  : "text-neutral-700"
-                                }`}
-                            >
-                              {step.label}
-                            </p>
-
-                            <p
-                              className={`mt-1 text-xs leading-relaxed transition-all duration-300 ${isFailed
-                                ? "text-red-700"
-                                : isCompleted
-                                  ? isFinalStep && paymentResult === "success"
-                                    ? "text-green-700"
-                                    : "text-blue-700"
-                                  : "text-neutral-500"
-                                }`}
-                            >
-                              {isLoading
-                                ? `${step.description} Procesando...`
-                                : isFailed
-                                  ? "Este paso no pudo completarse correctamente."
-                                  : step.description}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {paymentFinalMessage && (
-                    <div
-                      className={`mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium leading-relaxed transition-all duration-500 ${paymentResult === "success"
-                        ? "text-green-800"
-                        : "text-red-700"
-                        }`}
-                    >
-                      {paymentFinalMessage}
-                    </div>
-                  )}
-                </>
+              {cardBrand === "NU" && (
+                <label className="mt-3 block text-sm font-medium text-neutral-700">
+                  CVV
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="890"
+                    value={cvv}
+                    onChange={(e) => setCvv(formatCvv(e.target.value))}
+                    className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
+                  />
+                </label>
               )}
-            </div>
-          )}
 
-          {brokerTrace.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between gap-3">
+              <p className="mt-3 text-sm text-neutral-600">
+                Total a pagar:{" "}
+                <span className="font-semibold text-neutral-900">
+                  {formatCop(totalAmount)}
+                </span>
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-xl bg-blue-900 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Procesando pago..." : "Pagar y comprar"}
+            </button>
+          </form>
+        )}
+      </section>
+      {isMounted &&
+        showPaymentModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/45 px-4 py-6">
+            <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Detalle técnico de mensajería
+                  <h3 className="text-base font-bold text-neutral-950">
+                    Procesando pago
                   </h3>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Trazabilidad del flujo API → RabbitMQ → Worker AI → RabbitMQ → WebSocket.
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+                    Estamos validando tu compra y procesando eventos con IA.
                   </p>
                 </div>
 
-                <span className="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700">
-                  {brokerTrace.length} eventos
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
               </div>
 
-              <div className="mt-3 space-y-2">
-                {brokerTrace.map((item, index) => (
-                  <div
-                    key={item.eventId || index}
-                    className="rounded-lg border border-slate-100 bg-white p-3 shadow-sm"
+              <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
+                <div
+                  className={`rounded-xl border p-4 transition-all duration-500 ${paymentResult === "success"
+                      ? "border-green-100 bg-green-50"
+                      : paymentResult === "error"
+                        ? "border-red-100 bg-red-50"
+                        : "border-neutral-200 bg-neutral-50"
+                    }`}
+                >
+                  <h4
+                    className={`text-sm font-semibold ${paymentResult === "success"
+                        ? "text-green-950"
+                        : paymentResult === "error"
+                          ? "text-red-950"
+                          : "text-neutral-800"
+                      }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-                        {index + 1}
+                    Estado del proceso
+                  </h4>
+
+                  {formMessage ? (
+                    <div className="mt-3 rounded-lg bg-white px-4 py-3 text-sm font-medium text-red-700">
+                      {formMessage}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-4 space-y-3">
+                        {visiblePaymentSteps.map((step, index) => {
+                          const isFinalStep =
+                            step.key === "PAYMENT_AI_ANALYSIS_COMPLETED";
+                          const isFailed = failedStepIndex === index;
+                          const isCompleted =
+                            completedStepIndex >= index && !isFailed;
+                          const isLoading =
+                            visibleStepIndex === index &&
+                            !isCompleted &&
+                            !isFailed;
+
+                          return (
+                            <div key={step.key} className="flex items-start gap-3">
+                              <span
+                                className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${isFailed
+                                    ? "bg-red-600 text-white"
+                                    : isCompleted
+                                      ? isFinalStep && paymentResult === "success"
+                                        ? "bg-green-600 text-white"
+                                        : "bg-blue-700 text-white"
+                                      : "bg-neutral-300 text-neutral-700"
+                                  }`}
+                              >
+                                {isFailed ? (
+                                  "X"
+                                ) : isCompleted ? (
+                                  "✓"
+                                ) : (
+                                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-neutral-600" />
+                                )}
+                              </span>
+
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className={`text-sm font-semibold transition-all duration-300 ${isFailed
+                                      ? "text-red-900"
+                                      : isCompleted
+                                        ? isFinalStep && paymentResult === "success"
+                                          ? "text-green-900"
+                                          : "text-blue-900"
+                                        : "text-neutral-700"
+                                    }`}
+                                >
+                                  {step.label}
+                                </p>
+
+                                <p
+                                  className={`mt-1 text-xs leading-relaxed transition-all duration-300 ${isFailed
+                                      ? "text-red-700"
+                                      : isCompleted
+                                        ? isFinalStep && paymentResult === "success"
+                                          ? "text-green-700"
+                                          : "text-blue-700"
+                                        : "text-neutral-500"
+                                    }`}
+                                >
+                                  {isLoading
+                                    ? `${step.description} Procesando...`
+                                    : isFailed
+                                      ? "Este paso no pudo completarse correctamente."
+                                      : step.description}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-slate-900">
-                          {item.title}
-                        </p>
+                      {paymentFinalMessage && (
+                        <div
+                          className={`mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium leading-relaxed transition-all duration-500 ${paymentResult === "success"
+                              ? "text-green-800"
+                              : "text-red-700"
+                            }`}
+                        >
+                          {paymentFinalMessage}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
-                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                          {item.description}
-                        </p>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-900">
+                        Mensajería del broker
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-500">
+                        API → RabbitMQ → Worker AI → RabbitMQ → WebSocket
+                      </p>
+                    </div>
 
-                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
-                          <span className="rounded-full bg-slate-100 px-2 py-1">
-                            Componente: {item.component}
-                          </span>
+                    <span className="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700">
+                      {brokerStepCount} eventos
+                    </span>
+                  </div>
 
-                          {item.queueName && (
+                  <div className="mt-3 rounded-lg border border-slate-100 bg-white p-3 shadow-sm">
+                    {currentBrokerStep ? (
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                          {brokerStepCount}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            {!paymentResult && (
+                              <span className="h-2 w-2 animate-pulse rounded-full bg-blue-600" />
+                            )}
+
+                            <p className="text-xs font-semibold text-slate-900">
+                              {currentBrokerStep.title}
+                            </p>
+                          </div>
+
+                          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                            {currentBrokerStep.description}
+                          </p>
+
+                          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">
                             <span className="rounded-full bg-slate-100 px-2 py-1">
-                              Cola: {item.queueName}
+                              Componente: {currentBrokerStep.component}
                             </span>
-                          )}
 
-                          <span className="rounded-full bg-slate-100 px-2 py-1">
-                            Paso: {item.step}
-                          </span>
+                            {currentBrokerStep.queueName && (
+                              <span className="rounded-full bg-slate-100 px-2 py-1">
+                                Cola: {currentBrokerStep.queueName}
+                              </span>
+                            )}
+
+                            <span className="rounded-full bg-slate-100 px-2 py-1">
+                              Paso: {currentBrokerStep.step}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-slate-400" />
+                        Esperando eventos de mensajería...
+                      </div>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
+
+              {(paymentResult || formMessage) && (
+                <div className="border-t border-neutral-100 px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentModal(false)}
+                    className={`w-full rounded-xl px-4 py-2 text-sm font-semibold text-white ${paymentResult === "success"
+                        ? "bg-green-700 hover:bg-green-600"
+                        : "bg-blue-900 hover:bg-blue-800"
+                      }`}
+                  >
+                    Entendido
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-blue-900 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {submitting ? "Procesando pago..." : "Pagar y comprar"}
-          </button>
-        </form>
-      )}
-    </section>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
