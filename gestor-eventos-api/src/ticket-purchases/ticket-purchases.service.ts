@@ -181,6 +181,23 @@ export class TicketPurchasesService {
         'payment.result.created',
         failedEvent,
       );
+      await this.paymentEventsService.publish('payment.process.progress', {
+        eventId: randomUUID(),
+        paymentTrackingId,
+        step: 'API_PAYMENT_EVENT_PUBLISHED',
+        title: 'Evento de pago publicado en RabbitMQ',
+        description:
+          'El API publicó el resultado del pago en la cola payment.result.created para que sea procesado por el Worker AI.',
+        component: 'RABBITMQ',
+        queueName: 'payment.result.created',
+        sourceEventId: failedEvent.eventId,
+        createdAt: new Date().toISOString(),
+        metadata: {
+          eventType: failedEvent.eventType,
+          provider,
+          technicalCode,
+        },
+      });
       return {
         message: rejectionReason,
         payment: paymentResult.payment,
@@ -236,6 +253,23 @@ export class TicketPurchasesService {
       'payment.result.created',
       successEvent,
     );
+    await this.paymentEventsService.publish('payment.process.progress', {
+      eventId: randomUUID(),
+      paymentTrackingId,
+      step: 'API_PAYMENT_EVENT_PUBLISHED',
+      title: 'Evento de pago publicado en RabbitMQ',
+      description:
+        'El API publicó el pago exitoso en la cola payment.result.created para que el Worker AI genere el mensaje personalizado.',
+      component: 'RABBITMQ',
+      queueName: 'payment.result.created',
+      sourceEventId: successEvent.eventId,
+      createdAt: new Date().toISOString(),
+      metadata: {
+        eventType: successEvent.eventType,
+        provider,
+        purchaseId: purchase.id,
+      },
+    });
 
     return {
       message: 'Compra realizada correctamente',

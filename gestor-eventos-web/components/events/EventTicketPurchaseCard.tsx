@@ -17,7 +17,8 @@ type Props = {
 type PaymentSocketStatus =
   | "PAYMENT_REQUEST_SENT"
   | "PAYMENT_GATEWAY_RESPONSE_RECEIVED"
-  | "PAYMENT_AI_ANALYSIS_COMPLETED";
+  | "PAYMENT_AI_ANALYSIS_COMPLETED"
+  | "PAYMENT_PROCESS_PROGRESS";
 
 type PaymentSocketEvent = {
   purchaseId?: string;
@@ -25,11 +26,24 @@ type PaymentSocketEvent = {
   message: string;
   data?: unknown;
 };
+type PaymentProcessProgressEvent = {
+  eventId: string;
+  paymentTrackingId: string;
+  step: string;
+  title: string;
+  description: string;
+  component: string;
+  queueName?: string;
+  sourceEventId?: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+};
 
 type PaymentFlowStep =
   | "PAYMENT_REQUEST_SENT"
   | "PAYMENT_GATEWAY_RESPONSE_RECEIVED"
-  | "PAYMENT_AI_ANALYSIS_COMPLETED";
+  | "PAYMENT_AI_ANALYSIS_COMPLETED"
+  | "PAYMENT_PROCESS_PROGRESS";
 
 type PaymentFlowResult = "success" | "error" | null;
 
@@ -82,7 +96,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const animationTimeoutsRef = useRef<number[]>([]);
   const finalAnimationStartedRef = useRef(false);
   const socketRef = useRef<Socket | null>(null);
-
+  const [brokerTrace, setBrokerTrace] = useState<PaymentProcessProgressEvent[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -102,7 +116,32 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     });
     socketRef.current = socket;
 
+
     socket.on("payment-status", (event: PaymentSocketEvent) => {
+      console.log("Evento socket recibido:", event);
+
+      if (event.status === "PAYMENT_PROCESS_PROGRESS") {
+        const progressEvent = event.data as PaymentProcessProgressEvent | undefined;
+
+        if (!progressEvent?.eventId) {
+          return;
+        }
+
+        setBrokerTrace((previous) => {
+          const alreadyExists = previous.some(
+            (item) => item.eventId === progressEvent.eventId,
+          );
+
+          if (alreadyExists) {
+            return previous;
+          }
+
+          return [...previous, progressEvent];
+        });
+
+        return;
+      }
+
       if (event.status === "PAYMENT_REQUEST_SENT") {
         showRequestStep();
         return;
@@ -258,7 +297,9 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     setPaymentFinalMessage("");
     setPaymentResult(null);
     setFormMessage("");
+    setBrokerTrace([]);
   }
+
 
   function showFormError(message: string) {
     clearPaymentAnimationTimeouts();
@@ -563,6 +604,65 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
             </div>
           )}
 
+          {brokerTrace.length > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Detalle técnico de mensajería
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Trazabilidad del flujo API → RabbitMQ → Worker AI → RabbitMQ → WebSocket.
+                  </p>
+                </div>
+
+                <span className="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700">
+                  {brokerTrace.length} eventos
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {brokerTrace.map((item, index) => (
+                  <div
+                    key={item.eventId || index}
+                    className="rounded-lg border border-slate-100 bg-white p-3 shadow-sm"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                        {index + 1}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-900">
+                          {item.title}
+                        </p>
+
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                          {item.description}
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                          <span className="rounded-full bg-slate-100 px-2 py-1">
+                            Componente: {item.component}
+                          </span>
+
+                          {item.queueName && (
+                            <span className="rounded-full bg-slate-100 px-2 py-1">
+                              Cola: {item.queueName}
+                            </span>
+                          )}
+
+                          <span className="rounded-full bg-slate-100 px-2 py-1">
+                            Paso: {item.step}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <button
             type="submit"
             disabled={submitting}
