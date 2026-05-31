@@ -1,33 +1,42 @@
+import { randomUUID } from 'crypto';
+
 export type PaymentEventType =
-  | "PAYMENT_FAILED"
-  | "PAYMENT_TIMEOUT"
-  | "PAYMENT_SUCCESS";
+  | 'PAYMENT_FAILED'
+  | 'PAYMENT_TIMEOUT'
+  | 'PAYMENT_SUCCESS';
 
 export type PaymentResultEvent = {
+  eventId: string;
   eventType: PaymentEventType;
+  paymentTrackingId: string;
   purchaseId?: string;
-  userId?: string;
-  eventTicketId?: string;
-  provider?: "VISA" | "MASTERCARD" | "NU";
-  technicalCode?: string;
-  technicalMessage?: string;
-  eventName?: string;
-  ticketTypeName?: string;
-  quantity?: number;
-  amount?: number;
+  userId: string;
+  eventTicketId: string;
+  provider: 'VISA' | 'MASTERCARD' | 'NU';
+  technicalCode: string;
+  technicalMessage: string;
+  eventName: string;
+  ticketTypeName: string;
+  quantity: number;
+  amount: number;
+  currency?: 'COP';
+  createdAt?: string;
 };
 
 export type PaymentAiCompletedEvent = {
-  eventType: "PAYMENT_AI_COMPLETED";
+  eventId: string;
+  sourceEventId: string;
+  eventType: 'PAYMENT_AI_COMPLETED';
   originalEventType: PaymentEventType;
+  paymentTrackingId: string;
   purchaseId?: string;
-  userId?: string;
-  eventTicketId?: string;
-  status: "SUCCESS" | "FAILED" | "TIMEOUT";
+  userId: string;
+  eventTicketId: string;
+  status: 'SUCCESS' | 'FAILED' | 'TIMEOUT';
   userMessage: string;
-  technicalCode?: string;
+  technicalCode: string;
+  createdAt: string;
 };
-
 type OllamaGenerateResponse = {
   response?: string;
 };
@@ -39,19 +48,38 @@ export class AiMessageService {
   async generateMessage(
     event: PaymentResultEvent,
   ): Promise<PaymentAiCompletedEvent> {
+    if (!event.eventId) {
+      throw new Error('eventId es obligatorio para generar el mensaje AI');
+    }
+
+    if (!event.paymentTrackingId) {
+      throw new Error('paymentTrackingId es obligatorio para generar el mensaje AI');
+    }
+
+    if (!event.userId) {
+      throw new Error('userId es obligatorio para generar el mensaje AI');
+    }
+
+    if (!event.eventTicketId) {
+      throw new Error('eventTicketId es obligatorio para generar el mensaje AI');
+    }
     const status = this.getStatus(event.eventType);
 
     const userMessage = await this.generateMessageWithOllama(event);
 
     return {
-      eventType: "PAYMENT_AI_COMPLETED",
+      eventId: randomUUID(),
+      sourceEventId: event.eventId,
+      eventType: 'PAYMENT_AI_COMPLETED',
       originalEventType: event.eventType,
+      paymentTrackingId: event.paymentTrackingId,
       purchaseId: event.purchaseId,
       userId: event.userId,
       eventTicketId: event.eventTicketId,
       status,
       technicalCode: event.technicalCode,
       userMessage,
+      createdAt: new Date().toISOString(),
     };
   }
 

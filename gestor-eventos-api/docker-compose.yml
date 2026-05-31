@@ -27,20 +27,30 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - -q
+        - ping
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   api:
     build: .
     container_name: gestor_eventos_api
     restart: always
     ports:
-      - "3000:3000"
+      - "4000:4000"
       - "5555:5555"
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     environment:
+      PORT: 4000
       DATABASE_URL: postgresql://postgres:postgres@db:5432/gestor_eventos?schema=public
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     command: npm run start:dev
@@ -53,7 +63,7 @@ services:
     restart: always
     depends_on:
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       OLLAMA_URL: http://host.docker.internal:11434

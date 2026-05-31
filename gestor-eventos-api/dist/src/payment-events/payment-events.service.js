@@ -48,6 +48,9 @@ let PaymentEventsService = PaymentEventsService_1 = class PaymentEventsService {
     connection;
     channel;
     rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
+    async onModuleInit() {
+        await this.connectWithRetry();
+    }
     async publish(queue, payload) {
         const channel = await this.getOrCreateChannel();
         await channel.assertQueue(queue, {
@@ -82,14 +85,41 @@ let PaymentEventsService = PaymentEventsService_1 = class PaymentEventsService {
         if (this.channel) {
             return this.channel;
         }
-        this.connection = await amqp.connect(this.rabbitUrl);
-        this.channel = await this.connection.createChannel();
-        this.logger.log('RabbitMQ conectado correctamente desde backend');
+        await this.connectWithRetry();
+        if (!this.channel) {
+            throw new Error('No fue posible crear el canal de RabbitMQ');
+        }
         return this.channel;
+    }
+    async connectWithRetry(retries = 15, delayMs = 3000) {
+        if (this.channel) {
+            return;
+        }
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                this.logger.log(`Intentando conectar a RabbitMQ. Intento ${attempt}/${retries}`);
+                this.connection = await amqp.connect(this.rabbitUrl);
+                this.channel = await this.connection.createChannel();
+                this.logger.log('API conectado correctamente a RabbitMQ');
+                return;
+            }
+            catch (error) {
+                this.logger.warn(`RabbitMQ no disponible. Reintento ${attempt}/${retries} en ${delayMs}ms`);
+                if (attempt === retries) {
+                    this.logger.error('No fue posible conectar a RabbitMQ', error);
+                    throw error;
+                }
+                await this.sleep(delayMs);
+            }
+        }
+    }
+    sleep(delayMs) {
+        return new Promise((resolve) => setTimeout(resolve, delayMs));
     }
     async onModuleDestroy() {
         await this.channel?.close();
         await this.connection?.close();
+        this.logger.log('Conexión RabbitMQ cerrada');
     }
 };
 exports.PaymentEventsService = PaymentEventsService;

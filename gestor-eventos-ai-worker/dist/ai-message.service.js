@@ -1,0 +1,202 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AiMessageService = void 0;
+const crypto_1 = require("crypto");
+class AiMessageService {
+    ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
+    model = process.env.OLLAMA_MODEL || "llama3.2";
+    async generateMessage(event) {
+        if (!event.eventId) {
+            throw new Error('eventId es obligatorio para generar el mensaje AI');
+        }
+        if (!event.paymentTrackingId) {
+            throw new Error('paymentTrackingId es obligatorio para generar el mensaje AI');
+        }
+        if (!event.userId) {
+            throw new Error('userId es obligatorio para generar el mensaje AI');
+        }
+        if (!event.eventTicketId) {
+            throw new Error('eventTicketId es obligatorio para generar el mensaje AI');
+        }
+        const status = this.getStatus(event.eventType);
+        const userMessage = await this.generateMessageWithOllama(event);
+        return {
+            eventId: (0, crypto_1.randomUUID)(),
+            sourceEventId: event.eventId,
+            eventType: 'PAYMENT_AI_COMPLETED',
+            originalEventType: event.eventType,
+            paymentTrackingId: event.paymentTrackingId,
+            purchaseId: event.purchaseId,
+            userId: event.userId,
+            eventTicketId: event.eventTicketId,
+            status,
+            technicalCode: event.technicalCode,
+            userMessage,
+            createdAt: new Date().toISOString(),
+        };
+    }
+    async generateMessageWithOllama(event) {
+        try {
+            const response = await fetch(`${this.ollamaUrl}/api/generate`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    prompt: this.buildPrompt(event),
+                    stream: false,
+                    options: {
+                        temperature: 1.1,
+                        top_p: 0.95,
+                        repeat_penalty: 1.15,
+                    },
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`Ollama respondió con estado ${response.status}`);
+            }
+            const data = (await response.json());
+            const message = data.response?.trim();
+            if (!message) {
+                return this.generateFallbackMessage(event);
+            }
+            return this.cleanMessage(message);
+        }
+        catch (error) {
+            console.error("Error generando mensaje con Ollama:", error);
+            return this.generateFallbackMessage(event);
+        }
+    }
+    buildPrompt(event) {
+        const eventName = event.eventName || "el evento";
+        const ticketTypeName = event.ticketTypeName || "la entrada";
+        const quantity = event.quantity || 1;
+        const amount = event.amount || "el valor de la compra";
+        const provider = event.provider || "la pasarela";
+        const randomSeed = `${Date.now()}-${Math.random()}`;
+        if (event.eventType === "PAYMENT_SUCCESS") {
+            return `
+Eres un agente inteligente de una plataforma de eventos.
+
+Genera UN mensaje nuevo, natural y diferente para confirmar una compra exitosa.
+
+Datos:
+- Evento: ${eventName}
+- Tipo de entrada: ${ticketTypeName}
+- Cantidad: ${quantity}
+- Valor: ${amount}
+- Medio de pago: ${provider}
+- Semilla de variación: ${randomSeed}
+
+Reglas:
+- Responde en español.
+- Máximo 2 frases.
+- No repitas estructuras exactas.
+- No uses comillas.
+- No uses listas.
+- No menciones que eres una IA.
+- Debe sonar humano, positivo y útil.
+- Incluye una recomendación breve para asistir al evento.
+`;
+        }
+        if (event.eventType === "PAYMENT_TIMEOUT") {
+            return `
+Eres un agente inteligente de recuperación de ventas para una plataforma de eventos.
+
+Genera UN mensaje nuevo, empático y persuasivo para un error técnico o timeout en el pago.
+
+Datos:
+- Evento: ${eventName}
+- Tipo de entrada: ${ticketTypeName}
+- Medio de pago: ${provider}
+- Código técnico interno: ${event.technicalCode || "NETWORK_TIMEOUT"}
+- Detalle técnico interno: ${event.technicalMessage || "error temporal de conexión"}
+- Semilla de variación: ${randomSeed}
+
+Reglas:
+- Responde en español.
+- Máximo 2 frases.
+- No uses lenguaje técnico.
+- No uses comillas.
+- No uses listas.
+- No menciones que eres una IA.
+- Debe tranquilizar al usuario.
+- Invita a intentar nuevamente sin sonar robótico.
+`;
+        }
+        return `
+Eres un agente inteligente de recuperación de pagos para una plataforma de eventos.
+
+Genera UN mensaje nuevo, empático y persuasivo para un pago rechazado.
+
+Datos de la compra:
+- Evento: ${eventName}
+- Tipo de entrada: ${ticketTypeName}
+- Valor: ${amount}
+- Medio de pago seleccionado: ${provider}
+
+Motivo real del rechazo:
+- Código interno: ${event.technicalCode || "PAYMENT_REJECTED"}
+- Motivo recibido desde la pasarela: ${event.technicalMessage || "El pago fue rechazado por la pasarela"}
+
+Instrucción principal:
+El mensaje DEBE estar relacionado directamente con el motivo recibido desde la pasarela.
+Si el motivo dice que la tarjeta no fue encontrada, explica de forma amable que no se encontró o no se pudo validar esa tarjeta en el sistema del proveedor.
+Si el motivo habla de fondos insuficientes, explica que el saldo o cupo podría no ser suficiente.
+Si el motivo habla de CVV inválido, pide revisar el código de seguridad.
+Si el motivo es genérico, sugiere revisar los datos o intentar con otro medio de pago.
+
+Reglas:
+- Responde en español.
+- Máximo 2 frases.
+- No uses lenguaje técnico.
+- No uses comillas.
+- No uses listas.
+- No menciones que eres una IA.
+- No digas "código interno".
+- No copies literalmente el error técnico.
+- Debe sonar humano, útil y empático.
+- Debe motivar al usuario a intentar nuevamente o usar otro medio de pago.
+- Genera una redacción diferente en cada ejecución.
+- Semilla de variación: ${randomSeed}
+`;
+    }
+    getStatus(eventType) {
+        if (eventType === "PAYMENT_SUCCESS")
+            return "SUCCESS";
+        if (eventType === "PAYMENT_TIMEOUT")
+            return "TIMEOUT";
+        return "FAILED";
+    }
+    cleanMessage(message) {
+        return message
+            .replace(/^["'“”]+/, "")
+            .replace(/["'“”]+$/, "")
+            .replace(/\n/g, " ")
+            .trim();
+    }
+    generateFallbackMessage(event) {
+        const eventName = event.eventName || "tu evento";
+        const ticketTypeName = event.ticketTypeName || "entrada";
+        const uniqueReference = Math.floor(Math.random() * 99999);
+        if (event.eventType === "PAYMENT_SUCCESS") {
+            return `Tu compra fue confirmada correctamente para ${eventName}. Ten lista tu ${ticketTypeName} y llega con tiempo para disfrutar la experiencia. Ref ${uniqueReference}`;
+        }
+        if (event.eventType === "PAYMENT_TIMEOUT") {
+            return `Tuvimos una interrupción temporal al procesar el pago. Intenta nuevamente en unos minutos para completar tu compra. Ref ${uniqueReference}`;
+        }
+        const reason = event.technicalMessage?.toLowerCase() || "";
+        if (reason.includes("tarjeta no encontrada")) {
+            return `No encontramos esa tarjeta registrada con ${event.provider || "el proveedor seleccionado"}. Revisa el número ingresado o intenta con otro medio de pago para completar tu compra. Ref ${uniqueReference}`;
+        }
+        if (reason.includes("fondos") || reason.includes("saldo")) {
+            return `El pago no pudo completarse porque el saldo o cupo disponible podría no ser suficiente. Puedes intentar con otra tarjeta para finalizar tu compra. Ref ${uniqueReference}`;
+        }
+        if (reason.includes("cvv")) {
+            return `No pudimos validar el código de seguridad de la tarjeta. Revisa el CVV e intenta nuevamente para completar tu compra. Ref ${uniqueReference}`;
+        }
+        return `No pudimos completar el pago en este intento. Revisa los datos o prueba con otro medio de pago para asegurar tu entrada. Ref ${uniqueReference}`;
+    }
+}
+exports.AiMessageService = AiMessageService;

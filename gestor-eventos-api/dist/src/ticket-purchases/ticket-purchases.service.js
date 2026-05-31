@@ -15,6 +15,7 @@ const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const payment_events_gateway_1 = require("../payment-events/payment-events.gateway");
 const payment_events_service_1 = require("../payment-events/payment-events.service");
+const crypto_1 = require("crypto");
 const ticketPurchaseInclude = {
     event: true,
     eventTicket: {
@@ -80,7 +81,9 @@ let TicketPurchasesService = class TicketPurchasesService {
         const totalPrice = unitPrice * quantity;
         const externalRef = `event-${eventTicket.eventId}-ticket-${eventTicketId}-${Date.now()}`;
         const idempotencyKey = `${userId}-${eventTicketId}-${Date.now()}`;
+        const paymentTrackingId = idempotencyKey;
         this.paymentEventsGateway.emitPaymentStatus({
+            paymentTrackingId,
             status: 'PAYMENT_REQUEST_SENT',
             message: 'Enviando petición a la pasarela de pagos...',
             data: {
@@ -94,12 +97,19 @@ let TicketPurchasesService = class TicketPurchasesService {
                 '550e8400-e29b-41d4-a716-446655440000',
             externalRef,
             idempotencyKey,
+            paymentTrackingId,
+            userId,
+            eventTicketId,
             provider,
             cardNumber,
             cvv,
             amount: totalPrice,
+            quantity,
+            eventName: eventTicket.event.name,
+            ticketTypeName: eventTicket.ticketType.name,
         });
         this.paymentEventsGateway.emitPaymentStatus({
+            paymentTrackingId,
             status: 'PAYMENT_GATEWAY_RESPONSE_RECEIVED',
             message: 'Respuesta recibida desde la pasarela de pagos.',
             data: paymentResult,
@@ -115,6 +125,7 @@ let TicketPurchasesService = class TicketPurchasesService {
             const technicalCode = paymentResult.payment?.providerResponse?.code || 'PAYMENT_REJECTED';
             await this.paymentEventsService.publish('payment.result.created', {
                 eventType: 'PAYMENT_FAILED',
+                paymentTrackingId,
                 userId,
                 eventTicketId,
                 provider,
@@ -155,6 +166,7 @@ let TicketPurchasesService = class TicketPurchasesService {
         });
         await this.paymentEventsService.publish('payment.result.created', {
             eventType: 'PAYMENT_SUCCESS',
+            paymentTrackingId,
             purchaseId: purchase.id,
             userId,
             eventTicketId,
@@ -214,15 +226,25 @@ let TicketPurchasesService = class TicketPurchasesService {
             return data;
         }
         catch (error) {
-            await this.paymentEventsService.publish('payment.result.created', {
+            const timeoutEvent = {
+                eventId: (0, crypto_1.randomUUID)(),
                 eventType: 'PAYMENT_TIMEOUT',
+                paymentTrackingId: payload.paymentTrackingId,
+                userId: payload.userId,
+                eventTicketId: payload.eventTicketId,
                 provider: payload.provider,
                 technicalCode: 'NETWORK_TIMEOUT',
                 technicalMessage: error instanceof Error
                     ? error.message
                     : 'No fue posible conectar con la pasarela de pagos',
+                eventName: payload.eventName,
+                ticketTypeName: payload.ticketTypeName,
+                quantity: payload.quantity,
                 amount: payload.amount,
-            });
+                currency: 'COP',
+                createdAt: new Date().toISOString(),
+            };
+            await this.paymentEventsService.publish('payment.result.created', timeoutEvent);
             throw new common_1.BadRequestException('No fue posible conectar correctamente con la pasarela de pagos');
         }
     }

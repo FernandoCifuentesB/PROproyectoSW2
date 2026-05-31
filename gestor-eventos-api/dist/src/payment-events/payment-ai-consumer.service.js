@@ -25,13 +25,18 @@ let PaymentAiConsumerService = PaymentAiConsumerService_1 = class PaymentAiConsu
     async onModuleInit() {
         await this.paymentEventsService.consume('payment.ai.completed', async (payload) => {
             const event = payload;
-            this.logger.log(`Evento AI recibido para WebSocket: ${event.status}`);
+            if (!event.paymentTrackingId) {
+                this.logger.warn('Evento payment.ai.completed recibido sin paymentTrackingId');
+                return;
+            }
             this.paymentEventsGateway.emitPaymentStatus({
+                paymentTrackingId: event.paymentTrackingId,
                 purchaseId: event.purchaseId,
                 status: 'PAYMENT_AI_ANALYSIS_COMPLETED',
                 message: event.userMessage,
                 data: event,
             });
+            this.logger.log(`Resultado AI enviado por WebSocket: ${event.paymentTrackingId}`);
         });
     }
 };
