@@ -5,13 +5,17 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  IsUUID,
+  IsUUID, Min
+
 } from 'class-validator';
 
 export class CreateTicketPurchaseDto {
   @IsUUID()
   eventTicketId!: string;
 
+  @IsString()
+  @IsNotEmpty()
+  paymentTrackingId!: string;
   @IsInt()
   @IsPositive()
   quantity!: number;

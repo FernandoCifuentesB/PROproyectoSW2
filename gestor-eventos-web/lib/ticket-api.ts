@@ -30,6 +30,7 @@ export type CreatePurchasePayload = {
   provider: PaymentProvider;
   cardNumber: string;
   cvv?: string;
+  paymentTrackingId: string;
 };
 
 export type CreateTicketPurchaseResponse = {
