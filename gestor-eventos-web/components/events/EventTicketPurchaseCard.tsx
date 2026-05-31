@@ -81,6 +81,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
   const animationTimeoutsRef = useRef<number[]>([]);
   const finalAnimationStartedRef = useRef(false);
+  const socketRef = useRef<Socket | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -99,6 +100,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     const socket: Socket = io(socketUrl, {
       transports: ["websocket"],
     });
+    socketRef.current = socket;
 
     socket.on("payment-status", (event: PaymentSocketEvent) => {
       if (event.status === "PAYMENT_REQUEST_SENT") {
@@ -118,6 +120,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
     return () => {
       socket.disconnect();
+      socketRef.current = socket;
     };
   }, []);
 
@@ -309,12 +312,19 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     setSubmitting(true);
 
     try {
+      const paymentTrackingId = crypto.randomUUID();
+
+      socketRef.current?.emit("join-payment-room", {
+        paymentTrackingId,
+      });
+
       const result = await createTicketPurchase({
         eventTicketId: selectedId,
         quantity,
         provider: cardBrand,
         cardNumber: cardNumber.replace(/\s/g, ""),
         cvv: cardBrand === "NU" ? cvv : undefined,
+        paymentTrackingId,
       });
 
       /*
@@ -485,12 +495,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                         <div key={step.key} className="flex items-start gap-3">
                           <span
                             className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${isFailed
-                                ? "bg-red-600 text-white"
-                                : isCompleted
-                                  ? isFinalStep && paymentResult === "success"
-                                    ? "bg-green-600 text-white"
-                                    : "bg-blue-700 text-white"
-                                  : "bg-neutral-300 text-neutral-700"
+                              ? "bg-red-600 text-white"
+                              : isCompleted
+                                ? isFinalStep && paymentResult === "success"
+                                  ? "bg-green-600 text-white"
+                                  : "bg-blue-700 text-white"
+                                : "bg-neutral-300 text-neutral-700"
                               }`}
                           >
                             {isFailed ? (
@@ -505,12 +515,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                           <div className="flex-1">
                             <p
                               className={`text-sm font-semibold transition-all duration-300 ${isFailed
-                                  ? "text-red-900"
-                                  : isCompleted
-                                    ? isFinalStep && paymentResult === "success"
-                                      ? "text-green-900"
-                                      : "text-blue-900"
-                                    : "text-neutral-700"
+                                ? "text-red-900"
+                                : isCompleted
+                                  ? isFinalStep && paymentResult === "success"
+                                    ? "text-green-900"
+                                    : "text-blue-900"
+                                  : "text-neutral-700"
                                 }`}
                             >
                               {step.label}
@@ -518,12 +528,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
                             <p
                               className={`mt-1 text-xs leading-relaxed transition-all duration-300 ${isFailed
-                                  ? "text-red-700"
-                                  : isCompleted
-                                    ? isFinalStep && paymentResult === "success"
-                                      ? "text-green-700"
-                                      : "text-blue-700"
-                                    : "text-neutral-500"
+                                ? "text-red-700"
+                                : isCompleted
+                                  ? isFinalStep && paymentResult === "success"
+                                    ? "text-green-700"
+                                    : "text-blue-700"
+                                  : "text-neutral-500"
                                 }`}
                             >
                               {isLoading

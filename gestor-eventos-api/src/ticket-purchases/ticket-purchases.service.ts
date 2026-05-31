@@ -106,8 +106,10 @@ export class TicketPurchasesService {
     const totalPrice = unitPrice * quantity;
     const externalRef = `event-${eventTicket.eventId}-ticket-${eventTicketId}-${Date.now()}`;
     const idempotencyKey = `${userId}-${eventTicketId}-${Date.now()}`;
+    const paymentTrackingId = idempotencyKey;
 
     this.paymentEventsGateway.emitPaymentStatus({
+      paymentTrackingId,
       status: 'PAYMENT_REQUEST_SENT',
       message: 'Enviando petición a la pasarela de pagos...',
       data: {
@@ -118,11 +120,10 @@ export class TicketPurchasesService {
     });
 
     const paymentResult = await this.sendPaymentToGateway({
-      companyId:
-        process.env.PAYMENT_COMPANY_ID ||
-        '550e8400-e29b-41d4-a716-446655440000',
+      companyId: process.env.PAYMENT_COMPANY_ID || '550e8400-e29b-41d4-a716-446655440000',
       externalRef,
       idempotencyKey,
+      paymentTrackingId,
       provider,
       cardNumber,
       cvv,
@@ -130,6 +131,7 @@ export class TicketPurchasesService {
     });
 
     this.paymentEventsGateway.emitPaymentStatus({
+      paymentTrackingId,
       status: 'PAYMENT_GATEWAY_RESPONSE_RECEIVED',
       message: 'Respuesta recibida desde la pasarela de pagos.',
       data: paymentResult,
@@ -152,6 +154,7 @@ export class TicketPurchasesService {
 
       await this.paymentEventsService.publish('payment.result.created', {
         eventType: 'PAYMENT_FAILED',
+        paymentTrackingId,
         userId,
         eventTicketId,
         provider,
@@ -161,7 +164,6 @@ export class TicketPurchasesService {
         ticketTypeName: eventTicket.ticketType.name,
         amount: totalPrice,
       });
-
       return {
         message: rejectionReason,
         payment: paymentResult.payment,
@@ -197,6 +199,7 @@ export class TicketPurchasesService {
 
     await this.paymentEventsService.publish('payment.result.created', {
       eventType: 'PAYMENT_SUCCESS',
+      paymentTrackingId,
       purchaseId: purchase.id,
       userId,
       eventTicketId,
@@ -218,6 +221,7 @@ export class TicketPurchasesService {
     companyId: string;
     externalRef: string;
     idempotencyKey: string;
+    paymentTrackingId: string;
     provider: 'VISA' | 'MASTERCARD' | 'NU';
     cardNumber: string;
     cvv?: string;
@@ -283,6 +287,7 @@ export class TicketPurchasesService {
     } catch (error) {
       await this.paymentEventsService.publish('payment.result.created', {
         eventType: 'PAYMENT_TIMEOUT',
+        paymentTrackingId: payload.paymentTrackingId,
         provider: payload.provider,
         technicalCode: 'NETWORK_TIMEOUT',
         technicalMessage:
@@ -291,7 +296,6 @@ export class TicketPurchasesService {
             : 'No fue posible conectar con la pasarela de pagos',
         amount: payload.amount,
       });
-
       throw new BadRequestException(
         'No fue posible conectar correctamente con la pasarela de pagos',
       );

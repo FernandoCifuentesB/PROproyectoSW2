@@ -3,14 +3,14 @@ import { PaymentEventsGateway } from './payment-events.gateway';
 import { PaymentEventsService } from './payment-events.service';
 
 type PaymentAiCompletedEvent = {
-  eventType: 'PAYMENT_AI_COMPLETED';
-  originalEventType: 'PAYMENT_FAILED' | 'PAYMENT_TIMEOUT' | 'PAYMENT_SUCCESS';
+  paymentTrackingId: string;
   purchaseId?: string;
-  userId?: string;
-  eventTicketId?: string;
-  status: 'SUCCESS' | 'FAILED' | 'TIMEOUT';
-  userMessage: string;
+  message: string;
+  eventType?: string;
+  provider?: string;
   technicalCode?: string;
+  technicalMessage?: string;
+  [key: string]: unknown;
 };
 
 @Injectable()
@@ -20,7 +20,7 @@ export class PaymentAiConsumerService implements OnModuleInit {
   constructor(
     private readonly paymentEventsService: PaymentEventsService,
     private readonly paymentEventsGateway: PaymentEventsGateway,
-  ) {}
+  ) { }
 
   async onModuleInit(): Promise<void> {
     await this.paymentEventsService.consume(
@@ -28,16 +28,24 @@ export class PaymentAiConsumerService implements OnModuleInit {
       async (payload) => {
         const event = payload as PaymentAiCompletedEvent;
 
-        this.logger.log(
-          `Evento AI recibido para WebSocket: ${event.status}`,
-        );
+        if (!event.paymentTrackingId) {
+          this.logger.warn(
+            'Evento payment.ai.completed recibido sin paymentTrackingId',
+          );
+          return;
+        }
 
         this.paymentEventsGateway.emitPaymentStatus({
+          paymentTrackingId: event.paymentTrackingId,
           purchaseId: event.purchaseId,
           status: 'PAYMENT_AI_ANALYSIS_COMPLETED',
-          message: event.userMessage,
+          message: event.message,
           data: event,
         });
+
+        this.logger.log(
+          `Resultado AI enviado por WebSocket: ${event.paymentTrackingId}`,
+        );
       },
     );
   }
