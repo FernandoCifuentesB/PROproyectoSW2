@@ -24,66 +24,66 @@ export declare class TicketPurchasesService {
     } | {
         message: string;
         purchase: {
-            event: {
-                description: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                price: number;
-                isActive: boolean;
-                name: string;
-                date: Date;
-                imageUrl: string | null;
-                categoryId: string;
-            };
             user: {
                 id: string;
                 name: string;
                 email: string;
             };
+            event: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string;
+                date: Date;
+                price: number;
+                imageUrl: string | null;
+                categoryId: string;
+            };
             eventTicket: {
-                event: {
-                    description: string;
+                ticketType: {
                     id: string;
+                    name: string;
+                    isActive: boolean;
                     createdAt: Date;
                     updatedAt: Date;
-                    price: number;
-                    isActive: boolean;
+                    description: string | null;
+                };
+                event: {
+                    id: string;
                     name: string;
+                    isActive: boolean;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    description: string;
                     date: Date;
+                    price: number;
                     imageUrl: string | null;
                     categoryId: string;
                 };
-                ticketType: {
-                    description: string | null;
-                    id: string;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    isActive: boolean;
-                    name: string;
-                };
             } & {
                 id: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                price: number;
                 eventId: string;
                 ticketTypeId: string;
-                price: number;
                 stock: number;
                 sold: number;
-                isActive: boolean;
             };
         } & {
-            eventTicketId: string;
-            quantity: number;
             id: string;
-            unitPrice: number;
-            totalPrice: number;
-            status: import("@prisma/client").$Enums.PurchaseStatus;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
             eventId: string;
+            eventTicketId: string;
+            quantity: number;
+            unitPrice: number;
+            totalPrice: number;
+            status: import("@prisma/client").$Enums.PurchaseStatus;
         };
         payment: {
             id?: string;
@@ -99,128 +99,128 @@ export declare class TicketPurchasesService {
     }>;
     private sendPaymentToGateway;
     findMine(userId: string): Promise<({
-        event: {
-            description: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            price: number;
-            isActive: boolean;
-            name: string;
-            date: Date;
-            imageUrl: string | null;
-            categoryId: string;
-        };
         user: {
             id: string;
             name: string;
             email: string;
         };
+        event: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string;
+            date: Date;
+            price: number;
+            imageUrl: string | null;
+            categoryId: string;
+        };
         eventTicket: {
-            event: {
-                description: string;
+            ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                price: number;
-                isActive: boolean;
+                description: string | null;
+            };
+            event: {
+                id: string;
                 name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string;
                 date: Date;
+                price: number;
                 imageUrl: string | null;
                 categoryId: string;
             };
-            ticketType: {
-                description: string | null;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                isActive: boolean;
-                name: string;
-            };
         } & {
             id: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            price: number;
             eventId: string;
             ticketTypeId: string;
-            price: number;
             stock: number;
             sold: number;
-            isActive: boolean;
         };
     } & {
-        eventTicketId: string;
-        quantity: number;
         id: string;
-        unitPrice: number;
-        totalPrice: number;
-        status: import("@prisma/client").$Enums.PurchaseStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
         eventId: string;
+        eventTicketId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        status: import("@prisma/client").$Enums.PurchaseStatus;
     })[]>;
     findOne(id: string, userId: string): Promise<{
-        event: {
-            description: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            price: number;
-            isActive: boolean;
-            name: string;
-            date: Date;
-            imageUrl: string | null;
-            categoryId: string;
-        };
         user: {
             id: string;
             name: string;
             email: string;
         };
+        event: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string;
+            date: Date;
+            price: number;
+            imageUrl: string | null;
+            categoryId: string;
+        };
         eventTicket: {
-            event: {
-                description: string;
+            ticketType: {
                 id: string;
+                name: string;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                price: number;
-                isActive: boolean;
+                description: string | null;
+            };
+            event: {
+                id: string;
                 name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                description: string;
                 date: Date;
+                price: number;
                 imageUrl: string | null;
                 categoryId: string;
             };
-            ticketType: {
-                description: string | null;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                isActive: boolean;
-                name: string;
-            };
         } & {
             id: string;
+            isActive: boolean;
             createdAt: Date;
             updatedAt: Date;
+            price: number;
             eventId: string;
             ticketTypeId: string;
-            price: number;
             stock: number;
             sold: number;
-            isActive: boolean;
         };
     } & {
-        eventTicketId: string;
-        quantity: number;
         id: string;
-        unitPrice: number;
-        totalPrice: number;
-        status: import("@prisma/client").$Enums.PurchaseStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
         eventId: string;
+        eventTicketId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        status: import("@prisma/client").$Enums.PurchaseStatus;
     }>;
     getEventSalesReport(eventId: string): Promise<{
         event: {
