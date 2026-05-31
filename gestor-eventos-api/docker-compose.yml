@@ -53,6 +53,7 @@ services:
       PORT: 4000
       DATABASE_URL: postgresql://postgres:postgres@db:5432/gestor_eventos?schema=public
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PAYMENT_GATEWAY_URL: http://host.docker.internal:3010
     command: npm run start:dev
 
   ai-worker:

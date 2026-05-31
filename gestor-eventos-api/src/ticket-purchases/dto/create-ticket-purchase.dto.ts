@@ -3,24 +3,20 @@ import {
   IsInt,
   IsNotEmpty,
   IsOptional,
-  IsPositive,
   IsString,
-  IsUUID, Min
-
+  Min,
 } from 'class-validator';
 
 export class CreateTicketPurchaseDto {
-  @IsUUID()
-  eventTicketId!: string;
-
+  
   @IsString()
   @IsNotEmpty()
-  paymentTrackingId!: string;
+  eventTicketId!: string;
+
   @IsInt()
-  @IsPositive()
+  @Min(1)
   quantity!: number;
 
-  @IsString()
   @IsIn(['VISA', 'MASTERCARD', 'NU'])
   provider!: 'VISA' | 'MASTERCARD' | 'NU';
 
@@ -31,4 +27,8 @@ export class CreateTicketPurchaseDto {
   @IsOptional()
   @IsString()
   cvv?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  paymentTrackingId!: string;
 }

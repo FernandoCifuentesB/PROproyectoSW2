@@ -13,29 +13,24 @@ exports.CreateTicketPurchaseDto = void 0;
 const class_validator_1 = require("class-validator");
 class CreateTicketPurchaseDto {
     eventTicketId;
-    paymentTrackingId;
     quantity;
     provider;
     cardNumber;
     cvv;
+    paymentTrackingId;
 }
 exports.CreateTicketPurchaseDto = CreateTicketPurchaseDto;
-__decorate([
-    (0, class_validator_1.IsUUID)(),
-    __metadata("design:type", String)
-], CreateTicketPurchaseDto.prototype, "eventTicketId", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreateTicketPurchaseDto.prototype, "paymentTrackingId", void 0);
+], CreateTicketPurchaseDto.prototype, "eventTicketId", void 0);
 __decorate([
     (0, class_validator_1.IsInt)(),
-    (0, class_validator_1.IsPositive)(),
+    (0, class_validator_1.Min)(1),
     __metadata("design:type", Number)
 ], CreateTicketPurchaseDto.prototype, "quantity", void 0);
 __decorate([
-    (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsIn)(['VISA', 'MASTERCARD', 'NU']),
     __metadata("design:type", String)
 ], CreateTicketPurchaseDto.prototype, "provider", void 0);
@@ -49,4 +44,9 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateTicketPurchaseDto.prototype, "cvv", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateTicketPurchaseDto.prototype, "paymentTrackingId", void 0);
 //# sourceMappingURL=create-ticket-purchase.dto.js.map

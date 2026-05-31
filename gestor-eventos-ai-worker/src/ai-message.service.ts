@@ -48,9 +48,7 @@ export class AiMessageService {
   async generateMessage(
     event: PaymentResultEvent,
   ): Promise<PaymentAiCompletedEvent> {
-    if (!event.eventId) {
-      throw new Error('eventId es obligatorio para generar el mensaje AI');
-    }
+    event.eventId = event.eventId || randomUUID();
 
     if (!event.paymentTrackingId) {
       throw new Error('paymentTrackingId es obligatorio para generar el mensaje AI');

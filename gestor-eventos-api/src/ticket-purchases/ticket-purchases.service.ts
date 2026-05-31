@@ -55,8 +55,8 @@ export class TicketPurchasesService {
   ) { }
 
   async create(userId: string, dto: CreateTicketPurchaseDto) {
-    const { eventTicketId, quantity, provider, cardNumber, cvv } = dto;
-
+    const { eventTicketId, quantity, provider, cardNumber, cvv, paymentTrackingId } = dto;
+    console.log('DTO recibido en ticket-purchases:', dto);
     const eventTicket = await this.prisma.eventTicket.findUnique({
       where: { id: eventTicketId },
       include: {
@@ -108,7 +108,6 @@ export class TicketPurchasesService {
     const totalPrice = unitPrice * quantity;
     const externalRef = `event-${eventTicket.eventId}-ticket-${eventTicketId}-${Date.now()}`;
     const idempotencyKey = `${userId}-${eventTicketId}-${Date.now()}`;
-    const paymentTrackingId = idempotencyKey;
 
     this.paymentEventsGateway.emitPaymentStatus({
       paymentTrackingId,
@@ -161,7 +160,8 @@ export class TicketPurchasesService {
       const technicalCode =
         paymentResult.payment?.providerResponse?.code || 'PAYMENT_REJECTED';
 
-      await this.paymentEventsService.publish('payment.result.created', {
+      const failedEvent: PaymentResultCreatedEvent = {
+        eventId: randomUUID(),
         eventType: 'PAYMENT_FAILED',
         paymentTrackingId,
         userId,
@@ -171,8 +171,16 @@ export class TicketPurchasesService {
         technicalMessage: rejectionReason,
         eventName: eventTicket.event.name,
         ticketTypeName: eventTicket.ticketType.name,
+        quantity,
         amount: totalPrice,
-      });
+        currency: 'COP',
+        createdAt: new Date().toISOString(),
+      };
+
+      await this.paymentEventsService.publish(
+        'payment.result.created',
+        failedEvent,
+      );
       return {
         message: rejectionReason,
         payment: paymentResult.payment,
@@ -206,18 +214,28 @@ export class TicketPurchasesService {
       return createdPurchase;
     });
 
-    await this.paymentEventsService.publish('payment.result.created', {
+    const successEvent: PaymentResultCreatedEvent = {
+      eventId: randomUUID(),
       eventType: 'PAYMENT_SUCCESS',
       paymentTrackingId,
       purchaseId: purchase.id,
       userId,
       eventTicketId,
       provider,
+      technicalCode: 'PAYMENT_APPROVED',
+      technicalMessage: 'Pago aprobado por la pasarela',
       eventName: eventTicket.event.name,
       ticketTypeName: eventTicket.ticketType.name,
       quantity,
       amount: totalPrice,
-    });
+      currency: 'COP',
+      createdAt: new Date().toISOString(),
+    };
+
+    await this.paymentEventsService.publish(
+      'payment.result.created',
+      successEvent,
+    );
 
     return {
       message: 'Compra realizada correctamente',
@@ -250,7 +268,15 @@ export class TicketPurchasesService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          companyId: payload.companyId,
+          externalRef: payload.externalRef,
+          idempotencyKey: payload.idempotencyKey,
+          provider: payload.provider,
+          cardNumber: payload.cardNumber,
+          cvv: payload.cvv,
+          amount: payload.amount,
+        }),
       });
 
       const responseText = await response.text();
