@@ -129,8 +129,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     socketRef.current = socket;
 
     socket.on("payment-status", (event: PaymentSocketEvent) => {
-      console.log("Evento socket recibido:", event);
-
       if (event.status === "PAYMENT_PROCESS_PROGRESS") {
         const progressEvent = event.data as
           | PaymentProcessProgressEvent
@@ -320,8 +318,6 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    console.log("Click pagar: abriendo modal");
 
     resetPaymentFlow();
     setShowPaymentModal(true);

@@ -83,8 +83,6 @@ export type PaymentResponse = {
 export async function createPayment(body: CreatePaymentPayload) {
   const PAYMENT_API = requirePaymentApiUrl();
 
-  console.log("URL PASARELA:", PAYMENT_API);
-
   const cleanCardNumber = body.cardNumber.replace(/\s/g, "");
   const cleanCvv = body.cvv?.replace(/\s/g, "");
 
