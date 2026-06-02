@@ -10,7 +10,11 @@ const path_1 = require("path");
 const app_module_1 = require("./app.module");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    app.use((0, helmet_1.default)());
+    app.use((0, helmet_1.default)({
+        crossOriginResourcePolicy: {
+            policy: "cross-origin",
+        },
+    }));
     app.useStaticAssets((0, path_1.join)(process.cwd(), "uploads"), {
         prefix: "/uploads",
     });
@@ -24,7 +28,11 @@ async function bootstrap() {
         forbidNonWhitelisted: true,
     }));
     app.getHttpAdapter().getInstance().get("/__whoami", (_req, res) => {
-        res.json({ app: "gestor-eventos-api", pid: process.pid, time: new Date().toISOString() });
+        res.json({
+            app: "gestor-eventos-api",
+            pid: process.pid,
+            time: new Date().toISOString(),
+        });
     });
     await app.listen(4000, "0.0.0.0");
     console.log("API escuchando en http://0.0.0.0:4000");

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthModal from "@/components/auth/AuthModal";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, resolveApiAssetUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Category, EventItem, Paged } from "@/lib/types";
 import Card from "@/components/ui/Card";
@@ -190,12 +190,15 @@ export default function HomePage() {
               >
                 {event.imageUrl ? (
                   <img
-                    src={event.imageUrl}
+                    src={resolveApiAssetUrl(event.imageUrl) || ""}
                     alt={event.name}
                     className="h-48 w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder-event.svg";
+                    }}
                   />
                 ) : (
-                  <div className="flex h-48 items-center justify-center bg-blue-50 text-sm text-blue-900">
+                  <div className="flex h-48 items-center justify-center bg-neutral-100 text-sm text-neutral-500">
                     Sin imagen
                   </div>
                 )}
@@ -451,12 +454,15 @@ export default function HomePage() {
             >
               {event.imageUrl ? (
                 <img
-                  src={event.imageUrl}
+                  src={resolveApiAssetUrl(event.imageUrl) || ""}
                   alt={event.name}
                   className="h-48 w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder-event.svg";
+                  }}
                 />
               ) : (
-                <div className="flex h-48 items-center justify-center bg-gray-100 text-sm text-gray-500">
+                <div className="flex h-48 items-center justify-center bg-neutral-100 text-sm text-neutral-500">
                   Sin imagen
                 </div>
               )}

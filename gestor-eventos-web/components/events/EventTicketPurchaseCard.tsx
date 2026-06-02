@@ -73,7 +73,7 @@ const PAYMENT_FLOW_STEPS: {
     },
   ];
 
-const STEP_ANIMATION_DELAY = 700;
+const STEP_ANIMATION_DELAY = 70;
 
 export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
   const router = useRouter();
