@@ -1,4 +1,6 @@
-export type PaymentProvider = 'VISA' | 'MASTERCARD' | 'NU';
+import type { PaymentProvider } from "@/lib/payment-types";
+
+export type { PaymentProvider };
 
 export type CreatePaymentRequest = {
   externalRef: string;
