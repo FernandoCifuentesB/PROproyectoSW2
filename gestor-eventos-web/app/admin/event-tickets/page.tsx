@@ -5,14 +5,7 @@ import { useSearchParams } from "next/navigation";
 import EventTicketManager from "@/components/admin/EventTicketManager";
 import { apiGet } from "@/lib/api";
 import { EventItem } from "@/lib/types";
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
-}
+import { getErrorMessage } from "@/lib/utils";
 
 export default function AdminEventTicketsPage() {
   return (

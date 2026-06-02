@@ -23,6 +23,7 @@ import { useAuth } from "@/lib/auth";
 import { apiDelete, apiGet, apiPatchForm, apiPostForm } from "@/lib/api";
 import { formatCop, getMinTicketPrice } from "@/lib/tickets";
 import { Category, EventItem, TicketType } from "@/lib/types";
+import { getErrorMessage } from "@/lib/utils";
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -42,10 +43,6 @@ function cloneForm(form: EventFormState): EventFormState {
     ...form,
     tickets: form.tickets.map((ticket) => ({ ...ticket })),
   };
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export default function AdminEventsPage() {
