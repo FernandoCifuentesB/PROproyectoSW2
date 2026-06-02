@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io';
-export type PaymentSocketStatus = 'PAYMENT_REQUEST_SENT' | 'PAYMENT_GATEWAY_RESPONSE_RECEIVED' | 'PAYMENT_AI_ANALYSIS_COMPLETED';
+export type PaymentSocketStatus = 'PAYMENT_REQUEST_SENT' | 'PAYMENT_GATEWAY_RESPONSE_RECEIVED' | 'PAYMENT_AI_ANALYSIS_COMPLETED' | 'PAYMENT_PROCESS_PROGRESS';
 export interface PaymentSocketEvent {
     paymentTrackingId: string;
     purchaseId?: string;

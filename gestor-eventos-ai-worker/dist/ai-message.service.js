@@ -61,7 +61,7 @@ class AiMessageService {
             if (!message) {
                 return this.generateFallbackMessage(event);
             }
-            return this.cleanMessage(message);
+            return this.limitWords(this.cleanMessage(message), 20);
         }
         catch (error) {
             console.error("Error generando mensaje con Ollama:", error);
@@ -91,7 +91,9 @@ Datos:
 
 Reglas:
 - Responde en español.
-- Máximo 2 frases.
+-- Máximo 20 palabras.
+- Una sola frase.
+- No uses lenguaje técnico.
 - No repitas estructuras exactas.
 - No uses comillas.
 - No uses listas.
@@ -116,7 +118,8 @@ Datos:
 
 Reglas:
 - Responde en español.
-- Máximo 2 frases.
+- - Máximo 20 palabras.
+- Una sola frase.
 - No uses lenguaje técnico.
 - No uses comillas.
 - No uses listas.
@@ -149,7 +152,8 @@ Si el motivo es genérico, sugiere revisar los datos o intentar con otro medio d
 
 Reglas:
 - Responde en español.
-- Máximo 2 frases.
+- Máximo 20 palabras.
+- Una sola frase.
 - No uses lenguaje técnico.
 - No uses comillas.
 - No uses listas.

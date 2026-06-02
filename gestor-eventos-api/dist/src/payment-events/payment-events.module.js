@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const payment_ai_consumer_service_1 = require("./payment-ai-consumer.service");
 const payment_events_gateway_1 = require("./payment-events.gateway");
 const payment_events_service_1 = require("./payment-events.service");
+const payment_progress_consumer_service_1 = require("./payment-progress-consumer.service");
 let PaymentEventsModule = class PaymentEventsModule {
 };
 exports.PaymentEventsModule = PaymentEventsModule;
@@ -20,6 +21,7 @@ exports.PaymentEventsModule = PaymentEventsModule = __decorate([
             payment_events_gateway_1.PaymentEventsGateway,
             payment_events_service_1.PaymentEventsService,
             payment_ai_consumer_service_1.PaymentAiConsumerService,
+            payment_progress_consumer_service_1.PaymentProgressConsumerService
         ],
         exports: [payment_events_gateway_1.PaymentEventsGateway, payment_events_service_1.PaymentEventsService],
     })
