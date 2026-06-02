@@ -34,8 +34,8 @@ export default function TicketTypeManager() {
     try {
       const data = await getTicketTypes();
       setItems(data);
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible cargar los tipos de entrada");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible cargar los tipos de entrada");
     } finally {
       setLoading(false);
     }
@@ -82,8 +82,8 @@ export default function TicketTypeManager() {
 
       resetForm();
       await loadData();
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible guardar el tipo de entrada");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible guardar el tipo de entrada");
     }
   }
 
@@ -95,8 +95,8 @@ export default function TicketTypeManager() {
       await deleteTicketType(id);
       setMessage("Tipo de entrada eliminado");
       await loadData();
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible eliminar el tipo de entrada");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible eliminar el tipo de entrada");
     }
   }
 
