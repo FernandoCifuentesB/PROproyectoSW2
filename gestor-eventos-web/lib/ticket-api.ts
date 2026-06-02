@@ -1,5 +1,8 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "./api";
 import { EventTicket, TicketPurchase, TicketType } from "./types";
+import type { PaymentProvider } from "./payment-types";
+
+export type { PaymentProvider };
 
 export type CreateTicketTypePayload = {
   name: string;
@@ -21,8 +24,6 @@ export type UpdateEventTicketPayload = {
   stock?: number;
   isActive?: boolean;
 };
-
-export type PaymentProvider = "VISA" | "MASTERCARD" | "NU";
 
 export type CreatePurchasePayload = {
   eventTicketId: string;
