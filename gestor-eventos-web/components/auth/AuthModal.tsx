@@ -61,8 +61,8 @@ export default function AuthModal({
 
       login(response);
       onClose();
-    } catch (error: any) {
-      setLoginError(error?.message || "No fue posible iniciar sesión.");
+    } catch (error: unknown) {
+      setLoginError(error instanceof Error ? error.message : "No fue posible iniciar sesión.");
     } finally {
       setLoginLoading(false);
     }
@@ -82,8 +82,8 @@ export default function AuthModal({
 
       login(response);
       onClose();
-    } catch (error: any) {
-      setRegisterError(error?.message || "No fue posible crear la cuenta.");
+    } catch (error: unknown) {
+      setRegisterError(error instanceof Error ? error.message : "No fue posible crear la cuenta.");
     } finally {
       setRegisterLoading(false);
     }

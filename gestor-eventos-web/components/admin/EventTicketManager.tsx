@@ -49,8 +49,8 @@ export default function EventTicketManager({ eventId, eventName }: Props) {
 
       setTicketTypes(types);
       setItems(eventTickets);
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible cargar las entradas del evento");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible cargar las entradas del evento");
     } finally {
       setLoading(false);
     }
@@ -99,8 +99,8 @@ export default function EventTicketManager({ eventId, eventName }: Props) {
 
       resetForm();
       await loadAll();
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible guardar la entrada del evento");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible guardar la entrada del evento");
     }
   }
 
@@ -112,8 +112,8 @@ export default function EventTicketManager({ eventId, eventName }: Props) {
       await deleteEventTicket(eventId, id);
       setMessage("Entrada del evento eliminada");
       await loadAll();
-    } catch (error: any) {
-      setMessage(error.message || "No fue posible eliminar la entrada");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible eliminar la entrada");
     }
   }
 
