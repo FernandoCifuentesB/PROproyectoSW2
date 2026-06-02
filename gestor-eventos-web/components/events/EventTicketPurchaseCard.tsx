@@ -534,18 +534,18 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
               <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
                 <div
                   className={`rounded-xl border p-4 transition-all duration-500 ${paymentResult === "success"
-                      ? "border-green-100 bg-green-50"
-                      : paymentResult === "error"
-                        ? "border-red-100 bg-red-50"
-                        : "border-neutral-200 bg-neutral-50"
+                    ? "border-green-100 bg-green-50"
+                    : paymentResult === "error"
+                      ? "border-red-100 bg-red-50"
+                      : "border-neutral-200 bg-neutral-50"
                     }`}
                 >
                   <h4
                     className={`text-sm font-semibold ${paymentResult === "success"
-                        ? "text-green-950"
-                        : paymentResult === "error"
-                          ? "text-red-950"
-                          : "text-neutral-800"
+                      ? "text-green-950"
+                      : paymentResult === "error"
+                        ? "text-red-950"
+                        : "text-neutral-800"
                       }`}
                   >
                     Estado del proceso
@@ -573,12 +573,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                             <div key={step.key} className="flex items-start gap-3">
                               <span
                                 className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${isFailed
-                                    ? "bg-red-600 text-white"
-                                    : isCompleted
-                                      ? isFinalStep && paymentResult === "success"
-                                        ? "bg-green-600 text-white"
-                                        : "bg-blue-700 text-white"
-                                      : "bg-neutral-300 text-neutral-700"
+                                  ? "bg-red-600 text-white"
+                                  : isCompleted
+                                    ? isFinalStep && paymentResult === "success"
+                                      ? "bg-green-600 text-white"
+                                      : "bg-blue-700 text-white"
+                                    : "bg-neutral-300 text-neutral-700"
                                   }`}
                               >
                                 {isFailed ? (
@@ -593,12 +593,12 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                               <div className="min-w-0 flex-1">
                                 <p
                                   className={`text-sm font-semibold transition-all duration-300 ${isFailed
-                                      ? "text-red-900"
-                                      : isCompleted
-                                        ? isFinalStep && paymentResult === "success"
-                                          ? "text-green-900"
-                                          : "text-blue-900"
-                                        : "text-neutral-700"
+                                    ? "text-red-900"
+                                    : isCompleted
+                                      ? isFinalStep && paymentResult === "success"
+                                        ? "text-green-900"
+                                        : "text-blue-900"
+                                      : "text-neutral-700"
                                     }`}
                                 >
                                   {step.label}
@@ -606,19 +606,15 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
                                 <p
                                   className={`mt-1 text-xs leading-relaxed transition-all duration-300 ${isFailed
-                                      ? "text-red-700"
-                                      : isCompleted
-                                        ? isFinalStep && paymentResult === "success"
-                                          ? "text-green-700"
-                                          : "text-blue-700"
-                                        : "text-neutral-500"
+                                    ? "text-red-700"
+                                    : isCompleted
+                                      ? isFinalStep && paymentResult === "success"
+                                        ? "text-green-700"
+                                        : "text-blue-700"
+                                      : "text-neutral-500"
                                     }`}
                                 >
-                                  {isLoading
-                                    ? `${step.description} Procesando...`
-                                    : isFailed
-                                      ? "Este paso no pudo completarse correctamente."
-                                      : step.description}
+                                  {isLoading ? `${step.description} Procesando...` : step.description}
                                 </p>
                               </div>
                             </div>
@@ -628,7 +624,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
 
                       {paymentFinalMessage && (
                         <div
-                          className={`mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium leading-relaxed transition-all duration-500 ${paymentResult === "success"
+                          className={`mt-4 text-sm font-semibold leading-relaxed transition-all duration-500 ${paymentResult === "success"
                               ? "text-green-800"
                               : "text-red-700"
                             }`}
@@ -711,8 +707,8 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                     type="button"
                     onClick={() => setShowPaymentModal(false)}
                     className={`w-full rounded-xl px-4 py-2 text-sm font-semibold text-white ${paymentResult === "success"
-                        ? "bg-green-700 hover:bg-green-600"
-                        : "bg-blue-900 hover:bg-blue-800"
+                      ? "bg-green-700 hover:bg-green-600"
+                      : "bg-blue-900 hover:bg-blue-800"
                       }`}
                   >
                     Entendido
