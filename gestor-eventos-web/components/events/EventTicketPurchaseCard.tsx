@@ -355,6 +355,7 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
     }
 
     setSubmitting(true);
+    showRequestStep();
 
     try {
       const paymentTrackingId = crypto.randomUUID();
@@ -378,17 +379,17 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
         setCvv("");
         await loadTickets();
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "No fue posible completar el pago";
+    } catch {
 
-      const safeMessage = errorMessage.includes("<!DOCTYPE html>")
-        ? "No se pudo conectar correctamente con el backend o la pasarela de pagos."
-        : errorMessage;
+      schedulePaymentAnimation(() => {
+        setCompletedStepIndex(0);
+        setVisibleStepIndex(1);
+      }, STEP_ANIMATION_DELAY);
 
-      showFormError(safeMessage);
+      schedulePaymentAnimation(() => {
+        setCompletedStepIndex(1);
+        setVisibleStepIndex(2);
+      }, STEP_ANIMATION_DELAY * 2);
     } finally {
       setSubmitting(false);
     }
@@ -625,8 +626,8 @@ export default function EventTicketPurchaseCard({ eventId, canBuy }: Props) {
                       {paymentFinalMessage && (
                         <div
                           className={`mt-4 text-sm font-semibold leading-relaxed transition-all duration-500 ${paymentResult === "success"
-                              ? "text-green-800"
-                              : "text-red-700"
+                            ? "text-green-800"
+                            : "text-red-700"
                             }`}
                         >
                           {paymentFinalMessage}
