@@ -8,14 +8,7 @@ import EventTicketPurchaseCard from "@/components/events/EventTicketPurchaseCard
 import { formatCop, getMinTicketPrice } from "@/lib/tickets";
 import { EventItem } from "@/lib/types";
 import Button from "@/components/ui/Button";
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
-}
+import { getErrorMessage } from "@/lib/utils";
 
 export default function EventDetailPage() {
   return (
