@@ -1,3 +1,7 @@
+import type { CardBrand } from "./payment-types";
+
+export type { CardBrand };
+
 const RAW_PAYMENT_API = process.env.NEXT_PUBLIC_PAYMENT_API_URL;
 const COMPANY_ID = process.env.NEXT_PUBLIC_PAYMENT_COMPANY_ID;
 
@@ -48,8 +52,6 @@ function getErrorMessage(body: unknown) {
 
   return String(body);
 }
-
-export type CardBrand = "VISA" | "MASTERCARD" | "NU";
 
 export type CreatePaymentPayload = {
   externalRef: string;
